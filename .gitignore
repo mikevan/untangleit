@@ -1,0 +1,19 @@
+node_modules/
+out/
+dist/
+.vscode-test/
+*.vsix
+*.zip
+*.map
+__pycache__/
+# KeepSafe's local checkpoint store; it belongs to the machine, not the repository.
+.keepsafe/
+# Refactor It's working files; the run record travels with the code.
+.refactorit/*
+!.refactorit/runs.json
+# DeepTest's working files, when DeepTest measures this project.
+.deeptest/*
+!.deeptest/decisions.json
+test/fixtures/*/.refactorit/
+test/fixtures/*/.vscode/
+test/fixtures/*/node_modules/

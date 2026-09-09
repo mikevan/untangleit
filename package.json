@@ -1,0 +1,204 @@
+{
+  "name": "refactorit",
+  "displayName": "RefactorIt",
+  "description": "Untangles one method at a time. Finds the methods with too many ways through them, hands your AI assistant a strict brief to break them into smaller pieces without changing what they do, and measures the result. You decide at every step.",
+  "version": "0.1.3",
+  "publisher": "prs",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikevan/refactorit.git"
+  },
+  "icon": "media/refactorit.png",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "refactor",
+    "cyclomatic complexity",
+    "AI",
+    "vibe coding",
+    "MikeVan's AI Development Toolkit"
+  ],
+  "prsToolkit": {
+    "protocol": 1,
+    "verb": "untangle",
+    "commands": [
+      "refactorit.api.measure"
+    ],
+    "records": [
+      ".refactorit/runs.json"
+    ]
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "refactorit",
+          "title": "RefactorIt 0.1.3",
+          "icon": "media/refactorit.svg"
+        }
+      ]
+    },
+    "views": {
+      "refactorit": [
+        {
+          "type": "webview",
+          "id": "refactorit.sidebar",
+          "name": "RefactorIt 0.1.3",
+          "icon": "media/refactorit.svg",
+          "contextualTitle": "RefactorIt 0.1.3"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "refactorit.run",
+        "title": "Find the tangled methods",
+        "category": "RefactorIt",
+        "icon": "$(play)"
+      },
+      {
+        "command": "refactorit.configure",
+        "title": "Change the setup",
+        "category": "RefactorIt",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "refactorit.showOutput",
+        "title": "Show the log",
+        "category": "RefactorIt",
+        "icon": "$(output)"
+      },
+      {
+        "command": "refactorit.worst",
+        "title": "Untangle the most tangled method",
+        "category": "RefactorIt"
+      },
+      {
+        "command": "refactorit.method",
+        "title": "Untangle this method",
+        "category": "RefactorIt"
+      },
+      {
+        "command": "refactorit.measureAgain",
+        "title": "Measure the method again",
+        "category": "RefactorIt"
+      },
+      {
+        "command": "refactorit.api.measure",
+        "title": "Measure a file (silent, for other tools)",
+        "category": "RefactorIt"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "refactorit.run",
+          "when": "view == refactorit.sidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "refactorit.configure",
+          "when": "view == refactorit.sidebar",
+          "group": "navigation@2"
+        },
+        {
+          "command": "refactorit.showOutput",
+          "when": "view == refactorit.sidebar",
+          "group": "navigation@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "refactorit.method",
+          "when": "false"
+        },
+        {
+          "command": "refactorit.measureAgain",
+          "when": "false"
+        },
+        {
+          "command": "refactorit.api.measure",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "RefactorIt",
+      "properties": {
+        "refactorit.language": {
+          "type": "string",
+          "default": "",
+          "description": "Language plugin id (python, typescript). Empty means detect from the workspace."
+        },
+        "refactorit.testsPath": {
+          "type": "string",
+          "default": "",
+          "description": "Folder with the tests, relative to the workspace. Empty means detect."
+        },
+        "refactorit.sourceRoot": {
+          "type": "string",
+          "default": "",
+          "description": "Folder with the code to measure, relative to the workspace. Empty means the whole workspace."
+        },
+        "refactorit.languageSettings": {
+          "type": "object",
+          "default": {},
+          "description": "Per-language settings, keyed by plugin id."
+        },
+        "refactorit.limit": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Most ways through one method before it counts as tangled. Every piece produced by an untangling must also fit under this."
+        },
+        "refactorit.rounds": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "description": "How many rounds of untangle-and-measure to offer on one method before RefactorIt stops and hands the result back to you."
+        },
+        "refactorit.keepSafe.offerCheckpoint": {
+          "type": "boolean",
+          "default": true,
+          "description": "Before \"Untangle it\" hands work to an AI assistant, offer to create a KeepSafe checkpoint. Only applies when the KeepSafe extension (KeepSafe.keepsafe) is installed."
+        },
+        "refactorit.showNumbers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the engineer's numbers (cyclomatic complexity) next to the plain words."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "compile-tests": "tsc -p tsconfig.test.json",
+    "test:vscode": "npm run build && npm run compile-tests && node out/test/integration/runTests.js",
+    "package": "npm run check && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "@types/vscode": "^1.104.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "0.28.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "web-tree-sitter": "0.27.0"
+  }
+}

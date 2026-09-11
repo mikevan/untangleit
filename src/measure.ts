@@ -5,7 +5,7 @@
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { RefactorItConfig, settingsFor } from './config';
+import { UntangleItConfig, settingsFor } from './config';
 import { FunctionComplexity } from './engine/types';
 import { MeasuredMethod, WorkspaceMeasure, measureWorkspace } from './engine/tangle';
 import { LanguagePlugin, StructureSource } from './languages/types';
@@ -50,7 +50,7 @@ export async function measureFile(plugin: LanguagePlugin, workspaceRoot: string,
   return result.measure.methods;
 }
 
-export function sourceFilesFor(plugin: LanguagePlugin, config: RefactorItConfig, workspaceRoot: string): string[] {
+export function sourceFilesFor(plugin: LanguagePlugin, config: UntangleItConfig, workspaceRoot: string): string[] {
   const settings = settingsFor(config, plugin.id);
   return plugin.walkSources(workspaceRoot, settings.sourceRoot, settings.testsPath);
 }

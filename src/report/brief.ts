@@ -2,7 +2,7 @@
  * The untangle brief: everything an assistant needs to break one method
  * into pieces that each fit under the limit without changing what the code
  * does. Written so that a capable model can nail it and a weak one cannot
- * mistake it for something simpler. RefactorIt hands this over and judges
+ * mistake it for something simpler. UntangleIt hands this over and judges
  * the result; it does not vouch for whoever does the work.
  *
  * This brief began life inside DeepTest (its function-level "Break it into
@@ -37,7 +37,7 @@ function ways(n: number): string {
 export function buildUntangleBrief(input: BriefInput): string {
   const { path, name, startLine, endLine, complexity, limit, source, sourceTruncated, testsPath, language, round, remaining } = input;
   const lines: string[] = [];
-  lines.push(`# RefactorIt: bring ${name}() in ${path} down to at most ${limit} ways through`);
+  lines.push(`# UntangleIt: bring ${name}() in ${path} down to at most ${limit} ways through`);
   lines.push('');
   lines.push(`Language: ${language}. Tests live under: ${testsPath || '(workspace root)'}.${round > 1 ? ` This is round ${round}.` : ''}`);
   lines.push('');
@@ -90,6 +90,6 @@ export function buildUntangleBrief(input: BriefInput): string {
   lines.push('- Every test passes. Run the whole suite yourself before you report done.');
   lines.push('- Your report ends with a list: each method you created or changed, and its ways through.');
   lines.push('');
-  lines.push('RefactorIt will run the suite and measure every piece again. It will not accept the result on your behalf; if any piece is still over the limit, the person decides whether to send another round.');
+  lines.push('UntangleIt will run the suite and measure every piece again. It will not accept the result on your behalf; if any piece is still over the limit, the person decides whether to send another round.');
   return lines.join('\n');
 }

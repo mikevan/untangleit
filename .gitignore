@@ -8,12 +8,12 @@ dist/
 __pycache__/
 # KeepSafe's local checkpoint store; it belongs to the machine, not the repository.
 .keepsafe/
-# Refactor It's working files; the run record travels with the code.
-.refactorit/*
-!.refactorit/runs.json
+# UntangleIt's working files; the run record travels with the code.
+.untangleit/*
+!.untangleit/runs.json
 # DeepTest's working files, when DeepTest measures this project.
 .deeptest/*
 !.deeptest/decisions.json
-test/fixtures/*/.refactorit/
+test/fixtures/*/.untangleit/
 test/fixtures/*/.vscode/
 test/fixtures/*/node_modules/

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-// RefactorIt's own tests. Run with `npm test`. DeepTest measures this
+// UntangleIt's own tests. Run with `npm test`. DeepTest measures this
 // project with exactly this config.
 export default defineConfig({
   test: {

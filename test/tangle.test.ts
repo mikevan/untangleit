@@ -101,7 +101,7 @@ test('the brief states the target three ways, quotes the method, and ends with t
     language: 'TypeScript / JavaScript',
     round: 1,
   });
-  assert.match(brief, /^# RefactorIt: bring describeNumber\(\) in src\/calc\.ts down to at most 5 ways through/);
+  assert.match(brief, /^# UntangleIt: bring describeNumber\(\) in src\/calc\.ts down to at most 5 ways through/);
   assert.match(brief, /It does not mean "reduce by 5"\. A method that goes from 9 to 6 has not met the target\./);
   assert.match(brief, /  30 \| export function describeNumber/);
   assert.match(brief, /cut here; read the rest of the method from the file/);

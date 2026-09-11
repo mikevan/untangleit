@@ -1,5 +1,5 @@
 /**
- * Every sentence RefactorIt says, in one place, written for Jeff first.
+ * Every sentence UntangleIt says, in one place, written for Jeff first.
  * Engineer's terms (cyclomatic complexity) appear only beside the plain
  * phrase and only when "Show the engineer's numbers" is on. Every sentence
  * is complete and ends with punctuation; every instruction names the
@@ -9,7 +9,7 @@ import { Comparison, Tangled, WorkspaceMeasure } from '../engine/tangle';
 import { RunRecord } from '../runs';
 import { TestRunSummary } from '../languages/types';
 
-export const PRODUCT = 'RefactorIt';
+export const PRODUCT = 'UntangleIt';
 
 export interface Voice {
   showNumbers: boolean;

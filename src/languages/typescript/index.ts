@@ -25,7 +25,7 @@ const FIELDS: FieldSpec[] = [
       { value: 'vitest', label: 'Vitest' },
       { value: 'jest', label: 'Jest' },
     ],
-    hint: 'RefactorIt runs the project\'s own tests to check that an untangling kept the behaviour.',
+    hint: 'UntangleIt runs the project\'s own tests to check that an untangling kept the behaviour.',
   },
   {
     key: 'extraArgs',
@@ -36,7 +36,7 @@ const FIELDS: FieldSpec[] = [
   },
 ];
 
-const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'out', 'build', 'coverage', '.refactorit', '.deeptest', '.keepsafe', '.vscode-test', '.next', '.nuxt', '.svelte-kit', 'vendor']);
+const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'out', 'build', 'coverage', '.untangleit', '.deeptest', '.keepsafe', '.vscode-test', '.next', '.nuxt', '.svelte-kit', 'vendor']);
 const SOURCE_EXT = /\.(m?[jt]sx?|c[jt]s)$/;
 const TEST_FILE = /(\.(test|spec)\.[cm]?[jt]sx?$)/;
 
@@ -169,9 +169,9 @@ async function detect(workspaceRoot: string, _host: HostServices): Promise<Detec
   if (!readPackageJson(workspaceRoot)) {
     notes.push('No package.json at the workspace root.');
   } else if (runner) {
-    notes.push(`Found ${runner}. RefactorIt will run it to check that an untangling kept the behaviour.`);
+    notes.push(`Found ${runner}. UntangleIt will run it to check that an untangling kept the behaviour.`);
   } else {
-    notes.push('No test runner found in package.json. Without tests, RefactorIt cannot verify behaviour; it will still measure.');
+    notes.push('No test runner found in package.json. Without tests, UntangleIt cannot verify behaviour; it will still measure.');
   }
   const testsPath = guessTestsPath(workspaceRoot);
   const sourceRoot = guessSourceRoot(workspaceRoot, testsPath);

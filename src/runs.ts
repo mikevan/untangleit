@@ -1,5 +1,5 @@
 /**
- * The run record: one entry per untangling, in .refactorit/runs.json at the
+ * The run record: one entry per untangling, in .untangleit/runs.json at the
  * workspace root. Plain JSON, human readable, meant to be committed so the
  * history of what was untangled, by whose decision, and with what result
  * travels with the code. This is the public record other tools may read
@@ -38,7 +38,7 @@ export interface RunFile {
 }
 
 export function runFilePath(workspaceRoot: string): string {
-  return path.join(workspaceRoot, '.refactorit', 'runs.json');
+  return path.join(workspaceRoot, '.untangleit', 'runs.json');
 }
 
 export function emptyRunFile(): RunFile {
@@ -53,7 +53,7 @@ export function loadRuns(workspaceRoot: string, log?: (line: string) => void): R
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as Partial<RunFile>;
     if (parsed.version !== 1 || !Array.isArray(parsed.runs)) {
-      throw new Error('not a RefactorIt run file');
+      throw new Error('not a UntangleIt run file');
     }
     return { version: 1, runs: parsed.runs };
   } catch (err) {

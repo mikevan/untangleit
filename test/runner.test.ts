@@ -27,7 +27,7 @@ test('the Vitest fixture runs through the project runner and passes', async () =
 test('the pytest fixture runs through the project interpreter and passes', async () => {
   const root = path.resolve('test/fixtures/pyproject');
   const runner = pythonPlugin.createTestRunner();
-  const settings = { testsPath: 'tests', sourceRoot: 'src', fields: { interpreter: process.env.REFACTORIT_PYTHON ?? '' } };
+  const settings = { testsPath: 'tests', sourceRoot: 'src', fields: { interpreter: process.env.UNTANGLEIT_PYTHON ?? '' } };
   let summary;
   try {
     summary = await runner.run({ workspaceRoot: root, settings, log: () => undefined });

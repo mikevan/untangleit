@@ -5,7 +5,7 @@
  * the sibling files.
  */
 import * as vscode from 'vscode';
-import { RefactorItConfig, readConfig } from './config';
+import { UntangleItConfig, readConfig } from './config';
 import { deepTestInstalled } from './deeptest';
 import { LanguageGuess, countLanguages } from './detect/language';
 import { keepSafeInstalled } from './keepsafe';
@@ -20,7 +20,7 @@ import { ResultState } from './state';
 import { ConfigDefaults, ConfigPanel } from './ui/configPanel';
 import { SidebarMessage, SidebarView } from './ui/sidebarView';
 
-export interface RefactorItApi {
+export interface UntangleItApi {
   state: ResultState;
   run(): Promise<void>;
 }
@@ -42,7 +42,7 @@ function host(): HostServices {
   };
 }
 
-function choosePlugin(config: RefactorItConfig, detected: LanguageGuess[]): LanguagePlugin | undefined {
+function choosePlugin(config: UntangleItConfig, detected: LanguageGuess[]): LanguagePlugin | undefined {
   if (config.language) {
     return pluginById(config.language);
   }
@@ -55,9 +55,9 @@ function choosePlugin(config: RefactorItConfig, detected: LanguageGuess[]): Lang
   return undefined;
 }
 
-export function activate(context: vscode.ExtensionContext): RefactorItApi {
+export function activate(context: vscode.ExtensionContext): UntangleItApi {
   setRuntimeEnvironment({ wasmDir: vscode.Uri.joinPath(context.extensionUri, 'dist').fsPath });
-  const output = vscode.window.createOutputChannel('RefactorIt');
+  const output = vscode.window.createOutputChannel('UntangleIt');
   const state = new ResultState();
   let config = readConfig(workspaceFolder());
   const version = String((context.extension.packageJSON as { version?: string }).version ?? '');
@@ -93,14 +93,14 @@ export function activate(context: vscode.ExtensionContext): RefactorItApi {
   async function run(): Promise<void> {
     const folder = workspaceFolder();
     if (!folder) {
-      void vscode.window.showInformationMessage('RefactorIt needs an open folder to measure. Open your project folder first.');
+      void vscode.window.showInformationMessage('UntangleIt needs an open folder to measure. Open your project folder first.');
       return;
     }
     config = readConfig(folder);
     const root = workspaceRootOf(folder);
     const plugin = currentPlugin();
     if (!plugin) {
-      state.setError(`RefactorIt cannot measure ${config.language || 'this language'} yet. Press "Change the setup" to pick a language it can.`);
+      state.setError(`UntangleIt cannot measure ${config.language || 'this language'} yet. Press "Change the setup" to pick a language it can.`);
       return;
     }
     if (!config.language && !config.testsPath && !config.sourceRoot) {
@@ -109,12 +109,12 @@ export function activate(context: vscode.ExtensionContext): RefactorItApi {
       return;
     }
     const started = Date.now();
-    output.appendLine(`\n=== RefactorIt measure: ${new Date().toISOString()} (${plugin.displayName}, limit ${config.limit}) ===`);
+    output.appendLine(`\n=== UntangleIt measure: ${new Date().toISOString()} (${plugin.displayName}, limit ${config.limit}) ===`);
     state.setRunning();
     try {
       const files = sourceFilesFor(plugin, config, root);
       if (files.length === 0) {
-        state.setNoCode(`RefactorIt looked ${config.sourceRoot ? `in the folder "${config.sourceRoot}"` : 'in the whole project'} for ${plugin.displayName} files and found none.`);
+        state.setNoCode(`UntangleIt looked ${config.sourceRoot ? `in the folder "${config.sourceRoot}"` : 'in the whole project'} for ${plugin.displayName} files and found none.`);
         return;
       }
       const result = await measureFiles(plugin, root, files, config.limit, (l) => output.appendLine(l));
@@ -131,7 +131,7 @@ export function activate(context: vscode.ExtensionContext): RefactorItApi {
   async function openConfig(languageId?: string): Promise<void> {
     const folder = workspaceFolder();
     if (!folder) {
-      void vscode.window.showInformationMessage('RefactorIt needs an open folder to set up. Open your project folder first.');
+      void vscode.window.showInformationMessage('UntangleIt needs an open folder to set up. Open your project folder first.');
       return;
     }
     config = readConfig(folder);
@@ -162,7 +162,7 @@ export function activate(context: vscode.ExtensionContext): RefactorItApi {
         output.show(true);
         break;
       case 'toggleNumbers':
-        void vscode.workspace.getConfiguration('refactorit', workspaceFolder()).update('showNumbers', !config.showNumbers, vscode.ConfigurationTarget.Workspace).then(() => {
+        void vscode.workspace.getConfiguration('untangleit', workspaceFolder()).update('showNumbers', !config.showNumbers, vscode.ConfigurationTarget.Workspace).then(() => {
           config = readConfig(workspaceFolder());
           state.fire();
         });
@@ -209,12 +209,12 @@ export function activate(context: vscode.ExtensionContext): RefactorItApi {
     output,
     state,
     sidebar,
-    vscode.window.registerWebviewViewProvider('refactorit.sidebar', sidebar),
-    vscode.commands.registerCommand('refactorit.run', run),
-    vscode.commands.registerCommand('refactorit.configure', () => openConfig()),
-    vscode.commands.registerCommand('refactorit.showOutput', () => output.show(true)),
-    vscode.commands.registerCommand('refactorit.worst', () => untangleWorst(deps)),
-    vscode.commands.registerCommand('refactorit.method', async (args?: { path: string; startLine?: number; line?: number }) => {
+    vscode.window.registerWebviewViewProvider('untangleit.sidebar', sidebar),
+    vscode.commands.registerCommand('untangleit.run', run),
+    vscode.commands.registerCommand('untangleit.configure', () => openConfig()),
+    vscode.commands.registerCommand('untangleit.showOutput', () => output.show(true)),
+    vscode.commands.registerCommand('untangleit.worst', () => untangleWorst(deps)),
+    vscode.commands.registerCommand('untangleit.method', async (args?: { path: string; startLine?: number; line?: number }) => {
       if (!args?.path) {
         return;
       }
@@ -223,28 +223,28 @@ export function activate(context: vscode.ExtensionContext): RefactorItApi {
       }
       await untangle(deps, args.path, args.startLine ?? args.line ?? 0);
     }),
-    vscode.commands.registerCommand('refactorit.measureAgain', (args?: { path: string; name: string }) => args && measureAgain(deps, args.path, args.name)),
+    vscode.commands.registerCommand('untangleit.measureAgain', (args?: { path: string; name: string }) => args && measureAgain(deps, args.path, args.name)),
     // Silent command for sibling tools: measure one file, no screens, one envelope.
-    vscode.commands.registerCommand('refactorit.api.measure', async (args?: { path?: string }) => {
-      const envelope = (ok: boolean, body: Record<string, unknown>) => ({ protocol: 1, tool: 'refactorit', version, ok, ...body });
+    vscode.commands.registerCommand('untangleit.api.measure', async (args?: { path?: string }) => {
+      const envelope = (ok: boolean, body: Record<string, unknown>) => ({ protocol: 1, tool: 'untangleit', version, ok, ...body });
       const folder = workspaceFolder();
       if (!folder || !args?.path) {
-        return envelope(false, { error: 'RefactorIt needs an open folder and a file path to measure.' });
+        return envelope(false, { error: 'UntangleIt needs an open folder and a file path to measure.' });
       }
       const plugin = pluginForFile(args.path) ?? currentPlugin();
       if (!plugin) {
-        return envelope(false, { error: `RefactorIt cannot measure ${args.path} yet.` });
+        return envelope(false, { error: `UntangleIt cannot measure ${args.path} yet.` });
       }
       try {
         const methods = await measureFile(plugin, workspaceRootOf(folder), args.path, (l) => output.appendLine(l));
         const limit = readConfig(folder).limit;
         return envelope(true, { result: { path: args.path, limit, methods: methods.map((m) => ({ name: m.name, startLine: m.startLine, endLine: m.endLine, waysThrough: m.complexity, over: Math.max(0, m.complexity - limit) })) } });
       } catch (err) {
-        return envelope(false, { error: `RefactorIt could not measure ${args.path}: ${err instanceof Error ? err.message : String(err)}` });
+        return envelope(false, { error: `UntangleIt could not measure ${args.path}: ${err instanceof Error ? err.message : String(err)}` });
       }
     }),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('refactorit')) {
+      if (e.affectsConfiguration('untangleit')) {
         config = readConfig(workspaceFolder());
         state.fire();
       }

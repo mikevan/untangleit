@@ -19,7 +19,7 @@ export function absoluteUri(folder: vscode.WorkspaceFolder, relativePath: string
  * The workspace folder as the file system spells it. VS Code hands out
  * "c:\\workspace\\..." with a lower-case drive letter on Windows, while Node
  * and the test runners resolve files to "C:\\workspace\\...". Every path
- * RefactorIt passes to a runner starts from the real spelling.
+ * UntangleIt passes to a runner starts from the real spelling.
  */
 export function workspaceRootOf(folder: vscode.WorkspaceFolder): string {
   try {

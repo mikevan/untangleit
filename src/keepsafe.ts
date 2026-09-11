@@ -2,7 +2,7 @@
  * KeepSafe is a separate VS Code extension (publisher KeepSafe, id
  * KeepSafe.keepsafe) that takes a checkpoint of the whole workspace and
  * restores it on demand: an undo button for everything an AI assistant
- * changes. "Untangle it" is the one place RefactorIt hands work to an AI,
+ * changes. "Untangle it" is the one place UntangleIt hands work to an AI,
  * so it is the one place a checkpoint matters.
  *
  * The contract with KeepSafe is its public command `keepsafe.quickCheckpoint`
@@ -10,9 +10,9 @@
  * timestamped name, shows its own confirmation. Executing the command
  * activates the extension if it is installed but not yet running.
  *
- * When KeepSafe is not installed, RefactorIt recommends it once, in the
+ * When KeepSafe is not installed, UntangleIt recommends it once, in the
  * text of the setup screen, and does nothing else. This is the only file in
- * RefactorIt that names KeepSafe.
+ * UntangleIt that names KeepSafe.
  */
 import * as vscode from 'vscode';
 

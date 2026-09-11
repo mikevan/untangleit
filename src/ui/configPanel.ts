@@ -7,7 +7,7 @@
  * knows no language.
  */
 import * as vscode from 'vscode';
-import { RefactorItConfig, writeConfig } from '../config';
+import { UntangleItConfig, writeConfig } from '../config';
 import { DEEPTEST_REPOSITORY_URL, showDeepTestInExtensionsView } from '../deeptest';
 import { LanguageGuess } from '../detect/language';
 import { KEEPSAFE_MARKETPLACE_URL, showKeepSafeInExtensionsView } from '../keepsafe';
@@ -32,7 +32,7 @@ export class ConfigPanel {
   private static current: ConfigPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
 
-  static show(extensionUri: vscode.Uri, config: RefactorItConfig, defaults: ConfigDefaults, onSaved: (run: boolean) => void, redetect: (languageId: string) => Promise<ConfigDefaults>): void {
+  static show(extensionUri: vscode.Uri, config: UntangleItConfig, defaults: ConfigDefaults, onSaved: (run: boolean) => void, redetect: (languageId: string) => Promise<ConfigDefaults>): void {
     if (ConfigPanel.current) {
       ConfigPanel.current.panel.reveal();
       ConfigPanel.current.render(config, defaults);
@@ -43,17 +43,17 @@ export class ConfigPanel {
 
   private constructor(
     extensionUri: vscode.Uri,
-    private config: RefactorItConfig,
+    private config: UntangleItConfig,
     private defaults: ConfigDefaults,
     onSaved: (run: boolean) => void,
     redetect: (languageId: string) => Promise<ConfigDefaults>,
   ) {
-    this.panel = vscode.window.createWebviewPanel('refactorit.config', 'RefactorIt setup', vscode.ViewColumn.Active, {
+    this.panel = vscode.window.createWebviewPanel('untangleit.config', 'UntangleIt setup', vscode.ViewColumn.Active, {
       enableScripts: true,
       localResourceRoots: [extensionUri],
       retainContextWhenHidden: true,
     });
-    this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'refactorit.svg');
+    this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'untangleit.svg');
     this.panel.onDidDispose(() => {
       ConfigPanel.current = undefined;
     });
@@ -83,7 +83,7 @@ export class ConfigPanel {
     this.render(config, defaults);
   }
 
-  render(config: RefactorItConfig, defaults: ConfigDefaults): void {
+  render(config: UntangleItConfig, defaults: ConfigDefaults): void {
     this.config = config;
     this.defaults = defaults;
     this.panel.webview.html = this.html();
@@ -132,11 +132,11 @@ export class ConfigPanel {
     const keepSafeBlock = d.keepSafeInstalled
       ? `<p class="hint">KeepSafe is installed. It takes a checkpoint of your whole project and can put everything back the way it was.</p>
   <label class="check"><input type="checkbox" id="offerCheckpoint" ${c.keepSafe.offerCheckpoint ? 'checked' : ''}> Before "Untangle it" hands work to your AI assistant, ask me whether to create a KeepSafe checkpoint.</label>`
-      : `<p class="hint">"Untangle it" hands work to your AI assistant, and the assistant will change your code. RefactorIt recommends KeepSafe, a separate extension that takes a checkpoint of your whole project first and puts everything back if the change goes wrong. It is not installed. <a href="${KEEPSAFE_MARKETPLACE_URL}">KeepSafe on the VS Code Marketplace</a>.</p>
+      : `<p class="hint">"Untangle it" hands work to your AI assistant, and the assistant will change your code. UntangleIt recommends KeepSafe, a separate extension that takes a checkpoint of your whole project first and puts everything back if the change goes wrong. It is not installed. <a href="${KEEPSAFE_MARKETPLACE_URL}">KeepSafe on the VS Code Marketplace</a>.</p>
   <button id="showKeepSafe">Show KeepSafe in the Extensions view</button>`;
     const deepTestBlock = d.deepTestInstalled
       ? `<p class="hint">DeepTest is installed. After an untangling, press "Check my code again" in DeepTest to see whether every new piece has the tests it needs.</p>`
-      : `<p class="hint">RefactorIt checks that an untangling kept the behaviour by running your tests. DeepTest, a separate tool, goes further and says whether every new piece has enough tests. It is not installed. <a href="${DEEPTEST_REPOSITORY_URL}">DeepTest on GitHub</a>.</p>
+      : `<p class="hint">UntangleIt checks that an untangling kept the behaviour by running your tests. DeepTest, a separate tool, goes further and says whether every new piece has enough tests. It is not installed. <a href="${DEEPTEST_REPOSITORY_URL}">DeepTest on GitHub</a>.</p>
   <button id="showDeepTest">Show DeepTest in the Extensions view</button>`;
     return `<!DOCTYPE html>
 <html lang="en">
@@ -163,8 +163,8 @@ export class ConfigPanel {
 </style>
 </head>
 <body>
-  <h1>RefactorIt setup</h1>
-  <p class="hint">These fields were filled in from what RefactorIt found in your project. If they look right, press "Save and find the tangled methods". Everything here is also an ordinary setting under <code>refactorit.*</code>.</p>
+  <h1>UntangleIt setup</h1>
+  <p class="hint">These fields were filled in from what UntangleIt found in your project. If they look right, press "Save and find the tangled methods". Everything here is also an ordinary setting under <code>untangleit.*</code>.</p>
 
   <h2>Your project</h2>
   <p class="hint">Found: ${esc(detectedList)}.</p>
@@ -172,7 +172,7 @@ export class ConfigPanel {
   <select id="language">${languageOptions}</select>
   <div class="row">
     <div><label for="sourceRoot">Folder with the code</label><input type="text" id="sourceRoot" value="${esc(sourceRoot)}" placeholder="src (empty means the whole project)"><p class="hint">${found} source file${found === 1 ? '' : 's'} found.</p></div>
-    <div><label for="testsPath">Folder with the tests</label><input type="text" id="testsPath" value="${esc(testsPath)}" placeholder="tests"><p class="hint">RefactorIt runs these to check that an untangling kept the behaviour.</p></div>
+    <div><label for="testsPath">Folder with the tests</label><input type="text" id="testsPath" value="${esc(testsPath)}" placeholder="tests"><p class="hint">UntangleIt runs these to check that an untangling kept the behaviour.</p></div>
   </div>
   ${notes.length ? `<div class="note">${notes.map((n) => `<div>${esc(n)}</div>`).join('')}</div>` : ''}
   <button id="redetect">Look at the project again</button>
@@ -182,7 +182,7 @@ export class ConfigPanel {
   <h2>What counts as tangled</h2>
   <div class="row">
     <div><label for="limit">Most ways through one method</label><input type="number" id="limit" min="1" step="1" value="${c.limit}"><p class="hint">Above this, a method is too tangled. Every piece produced by an untangling must fit under it too.</p></div>
-    <div><label for="rounds">Rounds before RefactorIt stops</label><input type="number" id="rounds" min="1" step="1" value="${c.rounds}"><p class="hint">How many times "Measure again" may offer to send the method back before it hands the result to you.</p></div>
+    <div><label for="rounds">Rounds before UntangleIt stops</label><input type="number" id="rounds" min="1" step="1" value="${c.rounds}"><p class="hint">How many times "Measure again" may offer to send the method back before it hands the result to you.</p></div>
   </div>
   <label class="check"><input type="checkbox" id="showNumbers" ${c.showNumbers ? 'checked' : ''}> Show the engineer's numbers next to the plain words.</label>
 

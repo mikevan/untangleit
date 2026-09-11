@@ -1,6 +1,6 @@
 /**
  * Runs the integration suite inside a real editor against the Vitest
- * fixture. `npm run test:vscode`. REFACTORIT_VSCODE_PATH points at an
+ * fixture. `npm run test:vscode`. UNTANGLEIT_VSCODE_PATH points at an
  * existing VS Code or VSCodium executable; otherwise @vscode/test-electron
  * downloads a build into .vscode-test/.
  */
@@ -13,11 +13,11 @@ async function main(): Promise<void> {
   await runTests({
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'suite'),
-    vscodeExecutablePath: process.env.REFACTORIT_VSCODE_PATH,
+    vscodeExecutablePath: process.env.UNTANGLEIT_VSCODE_PATH,
     launchArgs: [workspace, '--disable-extensions', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'],
     // Lets the suite through the modal "Send this to your AI assistant?"
     // confirmation, which no script can press. Set here and nowhere else.
-    extensionTestsEnv: { REFACTORIT_TEST_HOST: '1' },
+    extensionTestsEnv: { UNTANGLEIT_TEST_HOST: '1' },
   });
 }
 

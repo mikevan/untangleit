@@ -22,7 +22,7 @@ import { FunctionComplexity } from '../engine/types';
 
 /** One language-specific field on the setup screen. */
 export interface FieldSpec {
-  /** Key inside refactorit.languageSettings.<languageId>. */
+  /** Key inside untangleit.languageSettings.<languageId>. */
   key: string;
   label: string;
   kind: 'text' | 'number' | 'checkbox' | 'select';

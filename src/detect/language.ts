@@ -30,7 +30,7 @@ const EXTENSIONS: Record<string, string> = {
   '.swift': 'swift',
 };
 
-const SKIP = new Set(['node_modules', '.git', '__pycache__', '.venv', 'venv', 'env', 'site-packages', '.tox', 'build', 'dist', 'out', '.deeptest', '.refactorit', '.keepsafe', 'target', 'bin', 'obj', '.pio', '.pioarduino']);
+const SKIP = new Set(['node_modules', '.git', '__pycache__', '.venv', 'venv', 'env', 'site-packages', '.tox', 'build', 'dist', 'out', '.deeptest', '.untangleit', '.keepsafe', 'target', 'bin', 'obj', '.pio', '.pioarduino']);
 
 export interface LanguageGuess {
   language: string;

@@ -1,14 +1,14 @@
 {
-  "name": "refactorit",
-  "displayName": "RefactorIt",
+  "name": "untangleit",
+  "displayName": "UntangleIt",
   "description": "Untangles one method at a time. Finds the methods with too many ways through them, hands your AI assistant a strict brief to break them into smaller pieces without changing what they do, and measures the result. You decide at every step.",
-  "icon": "media/refactoritLogo.png",
-  "version": "0.1.6",
+  "icon": "media/untangleitLogo.png",
+  "version": "0.1.7",
   "publisher": "prs",
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mikevan/refactorit.git"
+    "url": "https://github.com/mikevan/untangleit.git"
   },
   "engines": {
     "vscode": "^1.104.0"
@@ -28,10 +28,10 @@
     "protocol": 1,
     "verb": "untangle",
     "commands": [
-      "refactorit.api.measure"
+      "untangleit.api.measure"
     ],
     "records": [
-      ".refactorit/runs.json"
+      ".untangleit/runs.json"
     ]
   },
   "activationEvents": [
@@ -42,137 +42,137 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "refactorit",
-          "title": "RefactorIt 0.1.3",
-          "icon": "media/refactorit.svg"
+          "id": "untangleit",
+          "title": "UntangleIt 0.1.7",
+          "icon": "media/untangleit.svg"
         }
       ]
     },
     "views": {
-      "refactorit": [
+      "untangleit": [
         {
           "type": "webview",
-          "id": "refactorit.sidebar",
-          "name": "RefactorIt 0.1.3",
-          "icon": "media/refactorit.svg",
-          "contextualTitle": "RefactorIt 0.1.3"
+          "id": "untangleit.sidebar",
+          "name": "UntangleIt 0.1.7",
+          "icon": "media/untangleit.svg",
+          "contextualTitle": "UntangleIt 0.1.7"
         }
       ]
     },
     "commands": [
       {
-        "command": "refactorit.run",
+        "command": "untangleit.run",
         "title": "Find the tangled methods",
-        "category": "RefactorIt",
+        "category": "UntangleIt",
         "icon": "$(play)"
       },
       {
-        "command": "refactorit.configure",
+        "command": "untangleit.configure",
         "title": "Change the setup",
-        "category": "RefactorIt",
+        "category": "UntangleIt",
         "icon": "$(gear)"
       },
       {
-        "command": "refactorit.showOutput",
+        "command": "untangleit.showOutput",
         "title": "Show the log",
-        "category": "RefactorIt",
+        "category": "UntangleIt",
         "icon": "$(output)"
       },
       {
-        "command": "refactorit.worst",
+        "command": "untangleit.worst",
         "title": "Untangle the most tangled method",
-        "category": "RefactorIt"
+        "category": "UntangleIt"
       },
       {
-        "command": "refactorit.method",
+        "command": "untangleit.method",
         "title": "Untangle this method",
-        "category": "RefactorIt"
+        "category": "UntangleIt"
       },
       {
-        "command": "refactorit.measureAgain",
+        "command": "untangleit.measureAgain",
         "title": "Measure the method again",
-        "category": "RefactorIt"
+        "category": "UntangleIt"
       },
       {
-        "command": "refactorit.api.measure",
+        "command": "untangleit.api.measure",
         "title": "Measure a file (silent, for other tools)",
-        "category": "RefactorIt"
+        "category": "UntangleIt"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "refactorit.run",
-          "when": "view == refactorit.sidebar",
+          "command": "untangleit.run",
+          "when": "view == untangleit.sidebar",
           "group": "navigation@1"
         },
         {
-          "command": "refactorit.configure",
-          "when": "view == refactorit.sidebar",
+          "command": "untangleit.configure",
+          "when": "view == untangleit.sidebar",
           "group": "navigation@2"
         },
         {
-          "command": "refactorit.showOutput",
-          "when": "view == refactorit.sidebar",
+          "command": "untangleit.showOutput",
+          "when": "view == untangleit.sidebar",
           "group": "navigation@3"
         }
       ],
       "commandPalette": [
         {
-          "command": "refactorit.method",
+          "command": "untangleit.method",
           "when": "false"
         },
         {
-          "command": "refactorit.measureAgain",
+          "command": "untangleit.measureAgain",
           "when": "false"
         },
         {
-          "command": "refactorit.api.measure",
+          "command": "untangleit.api.measure",
           "when": "false"
         }
       ]
     },
     "configuration": {
-      "title": "RefactorIt",
+      "title": "UntangleIt",
       "properties": {
-        "refactorit.language": {
+        "untangleit.language": {
           "type": "string",
           "default": "",
           "description": "Language plugin id (python, typescript). Empty means detect from the workspace."
         },
-        "refactorit.testsPath": {
+        "untangleit.testsPath": {
           "type": "string",
           "default": "",
           "description": "Folder with the tests, relative to the workspace. Empty means detect."
         },
-        "refactorit.sourceRoot": {
+        "untangleit.sourceRoot": {
           "type": "string",
           "default": "",
           "description": "Folder with the code to measure, relative to the workspace. Empty means the whole workspace."
         },
-        "refactorit.languageSettings": {
+        "untangleit.languageSettings": {
           "type": "object",
           "default": {},
           "description": "Per-language settings, keyed by plugin id."
         },
-        "refactorit.limit": {
+        "untangleit.limit": {
           "type": "number",
           "default": 5,
           "minimum": 1,
           "description": "Most ways through one method before it counts as tangled. Every piece produced by an untangling must also fit under this."
         },
-        "refactorit.rounds": {
+        "untangleit.rounds": {
           "type": "number",
           "default": 3,
           "minimum": 1,
-          "description": "How many rounds of untangle-and-measure to offer on one method before RefactorIt stops and hands the result back to you."
+          "description": "How many rounds of untangle-and-measure to offer on one method before UntangleIt stops and hands the result back to you."
         },
-        "refactorit.keepSafe.offerCheckpoint": {
+        "untangleit.keepSafe.offerCheckpoint": {
           "type": "boolean",
           "default": true,
           "description": "Before \"Untangle it\" hands work to an AI assistant, offer to create a KeepSafe checkpoint. Only applies when the KeepSafe extension (KeepSafe.keepsafe) is installed."
         },
-        "refactorit.showNumbers": {
+        "untangleit.showNumbers": {
           "type": "boolean",
           "default": false,
           "description": "Show the engineer's numbers (cyclomatic complexity) next to the plain words."

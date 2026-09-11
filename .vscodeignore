@@ -10,7 +10,7 @@ tsconfig*.json
 .gitignore
 .gitattributes
 vitest.config.ts
-.refactorit/**
+.untangleit/**
 .keepsafe/**
 *.vsix
 *.zip

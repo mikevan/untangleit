@@ -28,7 +28,7 @@ const FIELDS: FieldSpec[] = [
   },
 ];
 
-const IGNORED_DIRS = new Set(['node_modules', '.git', '__pycache__', '.venv', 'venv', 'env', '.env', 'site-packages', '.tox', '.mypy_cache', '.pytest_cache', '.refactorit', '.deeptest', '.keepsafe', 'build', 'dist', '.eggs']);
+const IGNORED_DIRS = new Set(['node_modules', '.git', '__pycache__', '.venv', 'venv', 'env', '.env', 'site-packages', '.tox', '.mypy_cache', '.pytest_cache', '.untangleit', '.deeptest', '.keepsafe', 'build', 'dist', '.eggs']);
 const TEST_FILE = /^(test_.*\.py|.*_test\.py|tests?\.py)$/;
 
 export function isTestFile(relativePath: string): boolean {
@@ -163,7 +163,7 @@ async function detect(workspaceRoot: string, host: HostServices): Promise<Detect
     }
   }
   if (!testsPath) {
-    notes.push('No tests folder found. Without tests, RefactorIt cannot verify that an untangling kept the behaviour; it will still measure.');
+    notes.push('No tests folder found. Without tests, UntangleIt cannot verify that an untangling kept the behaviour; it will still measure.');
   }
   return { testsPath, sourceRoot, sourceFiles, fields: { interpreter, pytestArgs: '' }, notes };
 }

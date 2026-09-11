@@ -4,15 +4,15 @@
  *   1. Show      the method, its ways through, the limit (the card).
  *   2. Checkpoint the KeepSafe offer, when KeepSafe is installed.
  *   3. Confirm   one modal sentence; nothing is sent before "Yes, send it".
- *   4. Transform the assistant works from the brief. RefactorIt waits.
+ *   4. Transform the assistant works from the brief. UntangleIt waits.
  *   5. Verify    "Measure again": run the suite, measure every piece.
  *   6. Decide    within the limit, or another round, or stop. The person.
  *
- * RefactorIt never edits code, never restores a checkpoint, never retries
+ * UntangleIt never edits code, never restores a checkpoint, never retries
  * on its own, and never accepts its own result.
  */
 import * as vscode from 'vscode';
-import { RefactorItConfig, settingsFor } from './config';
+import { UntangleItConfig, settingsFor } from './config';
 import { Comparison, compare, snapshot } from './engine/tangle';
 import { KEEPSAFE_EXTENSION_ID, keepSafeInstalled, offerCheckpoint } from './keepsafe';
 import { deepTestInstalled } from './deeptest';
@@ -29,7 +29,7 @@ export interface LoopDeps {
   output: vscode.OutputChannel;
   workspaceRoot: () => string | undefined;
   plugin: () => LanguagePlugin | undefined;
-  config: () => RefactorItConfig;
+  config: () => UntangleItConfig;
 }
 
 /** How many lines of a method the brief quotes before cutting. */
@@ -57,13 +57,13 @@ async function gates(deps: LoopDeps, task: string): Promise<GateResult> {
   // this variable in the test host only. It is read from the process
   // environment, never from a setting a user could flip.
   const confirmed =
-    process.env.REFACTORIT_TEST_HOST === '1'
+    process.env.UNTANGLEIT_TEST_HOST === '1'
       ? 'Yes, send it'
       : await vscode.window.showWarningMessage(
           'Send this to your AI assistant?',
           {
             modal: true,
-            detail: `RefactorIt will hand your assistant a brief asking it to ${task}. The assistant will change your code. RefactorIt will run your tests and measure every piece when you press "Measure again"; it will not accept the result for you.`,
+            detail: `UntangleIt will hand your assistant a brief asking it to ${task}. The assistant will change your code. UntangleIt will run your tests and measure every piece when you press "Measure again"; it will not accept the result for you.`,
           },
           'Yes, send it',
         );
@@ -173,11 +173,11 @@ export async function untangleWorst(deps: LoopDeps): Promise<void> {
   await untangle(deps, worst.path, worst.startLine);
 }
 
-async function runTests(deps: LoopDeps, plugin: LanguagePlugin, root: string, config: RefactorItConfig): Promise<TestRunSummary | undefined> {
+async function runTests(deps: LoopDeps, plugin: LanguagePlugin, root: string, config: UntangleItConfig): Promise<TestRunSummary | undefined> {
   const settings = settingsFor(config, plugin.id);
   const runner = plugin.createTestRunner();
   try {
-    return await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `RefactorIt is running your tests (${runner.describe({ workspaceRoot: root, settings })}).` }, () =>
+    return await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `UntangleIt is running your tests (${runner.describe({ workspaceRoot: root, settings })}).` }, () =>
       runner.run({ workspaceRoot: root, settings, log: (l) => deps.output.appendLine(l) }),
     );
   } catch (err) {
@@ -214,7 +214,7 @@ export async function measureAgain(deps: LoopDeps, relativePath: string, name: s
   saveRuns(root, saved);
   deps.state.setRuns(saved);
   deps.output.appendLine(`Measured ${relativePath} ${name}() after round ${run.rounds}: ${sentence}`);
-  await vscode.commands.executeCommand('refactorit.run');
+  await vscode.commands.executeCommand('untangleit.run');
 
   if (run.status === 'within-limit') {
     const tail = deepTestInstalled() ? ' Press "Check my code again" in DeepTest to see whether every piece has the tests it needs.' : '';
@@ -222,7 +222,7 @@ export async function measureAgain(deps: LoopDeps, relativePath: string, name: s
     return;
   }
   if (run.rounds >= config.rounds) {
-    void vscode.window.showWarningMessage(`${sentence} That was round ${run.rounds} of ${config.rounds}, so RefactorIt stops here. Restore the checkpoint if you want the original back, or raise the rounds on the setup screen and press "Untangle it" again.`);
+    void vscode.window.showWarningMessage(`${sentence} That was round ${run.rounds} of ${config.rounds}, so UntangleIt stops here. Restore the checkpoint if you want the original back, or raise the rounds on the setup screen and press "Untangle it" again.`);
     run.status = 'stopped';
     const stopped = upsertRun(saved, run);
     saveRuns(root, stopped);
@@ -242,7 +242,7 @@ export async function measureAgain(deps: LoopDeps, relativePath: string, name: s
   await anotherRound(deps, plugin, root, config, run, comparison);
 }
 
-async function anotherRound(deps: LoopDeps, plugin: LanguagePlugin, root: string, config: RefactorItConfig, run: RunRecord, comparison: Comparison): Promise<void> {
+async function anotherRound(deps: LoopDeps, plugin: LanguagePlugin, root: string, config: UntangleItConfig, run: RunRecord, comparison: Comparison): Promise<void> {
   const gate = await gates(deps, `keep untangling ${run.name}() and the pieces that are still over ${ways(run.limit)}, without changing what the code does`);
   if (!gate.proceed) {
     return;

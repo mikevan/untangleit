@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { LanguageSettings } from './languages/types';
 
-export interface RefactorItConfig {
+export interface UntangleItConfig {
   language: string;
   testsPath: string;
   sourceRoot: string;
@@ -14,8 +14,8 @@ export interface RefactorItConfig {
   showNumbers: boolean;
 }
 
-export function readConfig(folder?: vscode.WorkspaceFolder): RefactorItConfig {
-  const c = vscode.workspace.getConfiguration('refactorit', folder);
+export function readConfig(folder?: vscode.WorkspaceFolder): UntangleItConfig {
+  const c = vscode.workspace.getConfiguration('untangleit', folder);
   return {
     language: c.get<string>('language', ''),
     testsPath: c.get<string>('testsPath', ''),
@@ -28,12 +28,12 @@ export function readConfig(folder?: vscode.WorkspaceFolder): RefactorItConfig {
   };
 }
 
-export function settingsFor(config: RefactorItConfig, languageId: string): LanguageSettings {
+export function settingsFor(config: UntangleItConfig, languageId: string): LanguageSettings {
   return { testsPath: config.testsPath, sourceRoot: config.sourceRoot, fields: config.languageSettings[languageId] ?? {} };
 }
 
 export async function writeConfig(values: Record<string, unknown>, folder?: vscode.WorkspaceFolder): Promise<void> {
-  const c = vscode.workspace.getConfiguration('refactorit', folder);
+  const c = vscode.workspace.getConfiguration('untangleit', folder);
   const target = vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
   for (const [key, value] of Object.entries(values)) {
     await c.update(key, value, target);

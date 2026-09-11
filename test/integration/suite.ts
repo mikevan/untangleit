@@ -2,14 +2,14 @@
  * Drives the real extension in a real editor against the Vitest fixture:
  * measure, find the tangled method, send it (the harness lets the suite
  * through the modal), then "Measure again" against an unchanged file and
- * check that RefactorIt reports "not done" rather than taking anyone's
+ * check that UntangleIt reports "not done" rather than taking anyone's
  * word for it.
  */
 import * as assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import type { RefactorItApi } from '../../src/extension';
+import type { UntangleItApi } from '../../src/extension';
 
 async function waitFor(check: () => boolean, ms: number, what: string): Promise<void> {
   const start = Date.now();
@@ -22,14 +22,14 @@ async function waitFor(check: () => boolean, ms: number, what: string): Promise<
 }
 
 export async function run(): Promise<void> {
-  const ext = vscode.extensions.getExtension('prs.refactorit');
+  const ext = vscode.extensions.getExtension('prs.untangleit');
   assert.ok(ext, 'extension not found');
-  const api = (await ext.activate()) as RefactorItApi;
+  const api = (await ext.activate()) as UntangleItApi;
   const folder = vscode.workspace.workspaceFolders?.[0];
   assert.ok(folder, 'no workspace folder');
-  fs.rmSync(path.join(folder.uri.fsPath, '.refactorit'), { recursive: true, force: true });
+  fs.rmSync(path.join(folder.uri.fsPath, '.untangleit'), { recursive: true, force: true });
 
-  const cfg = vscode.workspace.getConfiguration('refactorit', folder);
+  const cfg = vscode.workspace.getConfiguration('untangleit', folder);
   await cfg.update('language', 'typescript', vscode.ConfigurationTarget.Workspace);
   await cfg.update('testsPath', 'test', vscode.ConfigurationTarget.Workspace);
   await cfg.update('sourceRoot', 'src', vscode.ConfigurationTarget.Workspace);
@@ -45,21 +45,21 @@ export async function run(): Promise<void> {
     [['describeNumber', 8]],
   );
 
-  // Send it. The harness sets REFACTORIT_TEST_HOST=1, so the modal is bypassed.
-  await vscode.commands.executeCommand('refactorit.method', { path: 'src/calc.ts', startLine: tangled[0].startLine });
+  // Send it. The harness sets UNTANGLEIT_TEST_HOST=1, so the modal is bypassed.
+  await vscode.commands.executeCommand('untangleit.method', { path: 'src/calc.ts', startLine: tangled[0].startLine });
   await waitFor(() => api.state.runs.runs.length === 1, 10_000, 'run record');
   const record = api.state.runs.runs[0];
   assert.equal(record.status, 'sent');
   assert.equal(record.before, 8);
   const clip = await vscode.env.clipboard.readText();
-  assert.match(clip, /^# RefactorIt: bring describeNumber\(\) in src\/calc\.ts down to at most 5 ways through/);
+  assert.match(clip, /^# UntangleIt: bring describeNumber\(\) in src\/calc\.ts down to at most 5 ways through/);
   assert.match(clip, /It does not mean "reduce by 5"/);
-  const onDisk = JSON.parse(fs.readFileSync(path.join(folder.uri.fsPath, '.refactorit', 'runs.json'), 'utf8')) as { runs: Array<{ status: string }> };
+  const onDisk = JSON.parse(fs.readFileSync(path.join(folder.uri.fsPath, '.untangleit', 'runs.json'), 'utf8')) as { runs: Array<{ status: string }> };
   assert.equal(onDisk.runs[0].status, 'sent');
 
   // Measure again without any change: the tests pass, the method is still over, and the
   // loop must say so (it is round 1 of 3, so it offers another round; nobody answers).
-  void vscode.commands.executeCommand('refactorit.measureAgain', { path: 'src/calc.ts', name: 'describeNumber' });
+  void vscode.commands.executeCommand('untangleit.measureAgain', { path: 'src/calc.ts', name: 'describeNumber' });
   await waitFor(() => api.state.runs.runs[0]?.status === 'still-over', 120_000, 'measure again');
   const after = api.state.runs.runs[0];
   assert.equal(after.tests?.failed, 0);
@@ -67,17 +67,17 @@ export async function run(): Promise<void> {
   assert.match(after.outcome ?? '', /^Not done\. 1 piece: describeNumber\(\) 8\. 1 piece is still over your limit of 5\. All \d+ tests pass\. Your call\.$/);
 
   // The silent command for sibling tools.
-  const envelope = (await vscode.commands.executeCommand('refactorit.api.measure', { path: 'src/calc.ts' })) as { ok: boolean; protocol: number; tool: string; result: { methods: Array<{ name: string; waysThrough: number; over: number }> } };
+  const envelope = (await vscode.commands.executeCommand('untangleit.api.measure', { path: 'src/calc.ts' })) as { ok: boolean; protocol: number; tool: string; result: { methods: Array<{ name: string; waysThrough: number; over: number }> } };
   assert.equal(envelope.ok, true);
   assert.equal(envelope.protocol, 1);
-  assert.equal(envelope.tool, 'refactorit');
+  assert.equal(envelope.tool, 'untangleit');
   assert.deepEqual(
     envelope.result.methods.filter((m) => m.over > 0).map((m) => [m.name, m.waysThrough, m.over]),
     [['describeNumber', 8, 3]],
   );
-  const bad = (await vscode.commands.executeCommand('refactorit.api.measure', {})) as { ok: boolean; error: string };
+  const bad = (await vscode.commands.executeCommand('untangleit.api.measure', {})) as { ok: boolean; error: string };
   assert.equal(bad.ok, false);
   assert.match(bad.error, /\.$/);
 
-  console.log('RefactorIt integration suite passed');
+  console.log('UntangleIt integration suite passed');
 }

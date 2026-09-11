@@ -55,7 +55,7 @@ export class ResultState implements vscode.Disposable {
   }
 
   fire(): void {
-    void vscode.commands.executeCommand('setContext', 'refactorit.hasResults', this.phase === 'results');
+    void vscode.commands.executeCommand('setContext', 'untangleit.hasResults', this.phase === 'results');
     this.emitter.fire();
   }
 

@@ -183,3 +183,14 @@ file yields no methods. The extraction and its tests live in the library
 (src/sfc.ts, test/sfc.test.ts) so DeepTest and UntangleIt read a component
 the same way. DeepTest's engineering notes, "Single-file components are
 parsed (1.0.3)", has the reasoning.
+
+## Angular through the builder (1.0.4)
+
+An Angular project whose angular.json test target is
+`@angular/build:unit-test` without `"runner": "karma"` is run with
+`ng test --watch=false` through the project's own @angular/cli, never
+the vitest binary, because the tests need the Angular compiler and
+TestBed that only the builder provides. The setup screen calls it "ng
+test with Vitest". The summary is Vitest's, parsed the same way. Karma
+under the builder is 1.0.5. Verified on HelloWorlds' angular-vitest: 11
+passed through the loop's runner.

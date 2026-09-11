@@ -2,6 +2,12 @@
 
 Updated 2026-09-12. Source tree at C:\workspace\UntangleIt. Publisher `prs`, extension id `prs.untangleit`.
 
+## 2026-09-12, 1.0.4: Angular tests run through ng test
+
+- Runner ng-vitest for an Angular project with the unit-test builder:
+  `ng test --watch=false` through the project's @angular/cli. One new
+  test; 15 unit tests expected.
+
 ## 2026-09-12, 1.0.3: single-file components
 
 - .vue and .svelte are walked and measured through the library's

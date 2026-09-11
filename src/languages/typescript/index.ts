@@ -14,7 +14,8 @@ import { Detection, FieldSpec, HostServices, LanguagePlugin, LanguageSettings, R
 import { analyzeTypeScriptTree } from './structure';
 import { extractScript, isSingleFileComponent } from '@projectrevivesolutions/complexity';
 
-export type Runner = 'jest' | 'vitest';
+/** ng-vitest is Vitest under Angular's unit-test builder, driven through `ng test`. */
+export type Runner = 'jest' | 'vitest' | 'ng-vitest';
 
 const FIELDS: FieldSpec[] = [
   {
@@ -92,6 +93,26 @@ export function resolveModuleDir(workspaceRoot: string, name: string): string | 
     }
     dir = parent;
   }
+}
+
+/** The runner under Angular's unit-test builder, from angular.json; undefined for a project that is not Angular. */
+export function detectAngularRunner(workspaceRoot: string): 'vitest' | 'karma' | undefined {
+  let angular: { projects?: Record<string, { architect?: Record<string, { builder?: string; options?: { runner?: string } }> }> };
+  try {
+    angular = JSON.parse(fs.readFileSync(path.join(workspaceRoot, 'angular.json'), 'utf8'));
+  } catch {
+    return undefined;
+  }
+  for (const project of Object.values(angular.projects ?? {})) {
+    const test = project.architect?.test;
+    if (test?.builder === '@angular/build:unit-test') {
+      return test.options?.runner === 'karma' ? 'karma' : 'vitest';
+    }
+    if (test?.builder === '@angular-devkit/build-angular:karma') {
+      return 'karma';
+    }
+  }
+  return undefined;
 }
 
 export function detectRunner(workspaceRoot: string): Runner | undefined {
@@ -182,18 +203,35 @@ async function detect(workspaceRoot: string, _host: HostServices): Promise<Detec
 class NodeTestRunner implements TestRunner {
   private runnerFor(ctx: Pick<RunContext, 'workspaceRoot' | 'settings'>): Runner | undefined {
     const { runner } = tsFields(ctx.settings);
-    return runner === 'auto' ? detectRunner(ctx.workspaceRoot) : runner;
+    if (runner !== 'auto') {
+      return runner;
+    }
+    return detectAngularRunner(ctx.workspaceRoot) === 'vitest' ? 'ng-vitest' : detectRunner(ctx.workspaceRoot);
   }
 
   describe(ctx: Pick<RunContext, 'workspaceRoot' | 'settings'>): string {
     const runner = this.runnerFor(ctx);
-    return runner ? `${runner} ${ctx.settings.testsPath || ''}`.trim() : 'no test runner found';
+    return runner ? `${runner === 'ng-vitest' ? 'ng test with Vitest' : runner} ${ctx.settings.testsPath || ''}`.trim() : 'no test runner found';
   }
 
   async run(ctx: RunContext): Promise<TestRunSummary> {
     const runner = this.runnerFor(ctx);
     if (!runner) {
       throw new Error('No test runner was found. Install Vitest or Jest, or pick one on the setup screen.');
+    }
+    if (runner === 'ng-vitest') {
+      // Angular's tests need the compiler and TestBed that only the builder
+      // provides, so the run is `ng test`, never the vitest binary (DeepTest
+      // 1.0 survey, finding 3a). Same driver as DeepTest's, without the hook.
+      const cli = resolveModuleDir(ctx.workspaceRoot, '@angular/cli');
+      if (!cli) {
+        throw new Error('@angular/cli is not installed. Run npm install.');
+      }
+      const { extraArgs: ngExtra } = tsFields(ctx.settings);
+      const ngArgs = [path.join(cli, 'bin', 'ng.js'), 'test', '--watch=false', ...splitArgs(ngExtra)];
+      ctx.log(`$ node ${ngArgs.join(' ')}`);
+      const ngRun = await runProcess('node', ngArgs, { cwd: ctx.workspaceRoot, env: { ...process.env, CI: process.env.CI ?? 'true', NO_COLOR: '1', FORCE_COLOR: '0' }, log: ctx.log, signal: ctx.signal });
+      return parseVitestSummary(ngRun.output, ngRun.exitCode);
     }
     const moduleDir = resolveModuleDir(ctx.workspaceRoot, runner);
     if (!moduleDir) {

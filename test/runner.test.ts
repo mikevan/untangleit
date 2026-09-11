@@ -1,8 +1,10 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { parsePytestSummary, pythonPlugin } from '../src/languages/python';
-import { parseJestSummary, parseVitestSummary, typescriptPlugin } from '../src/languages/typescript';
+import { detectAngularRunner, parseJestSummary, parseVitestSummary, typescriptPlugin } from '../src/languages/typescript';
 
 const ESC = String.fromCharCode(27);
 
@@ -41,4 +43,19 @@ test('the pytest fixture runs through the project interpreter and passes', async
   }
   assert.equal(summary.failed, 0);
   assert.ok(summary.passed >= 4);
+});
+
+test('an Angular project is run through ng test, never the vitest binary (1.0.4)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'untangleit-ng-'));
+  const write = (test: unknown) => fs.writeFileSync(path.join(dir, 'angular.json'), JSON.stringify({ projects: { app: { architect: { test } } } }));
+  write({ builder: '@angular/build:unit-test' });
+  assert.equal(detectAngularRunner(dir), 'vitest');
+  const runner = typescriptPlugin.createTestRunner();
+  const settings = { testsPath: '', sourceRoot: 'src', fields: { runner: 'auto', extraArgs: '' } };
+  assert.equal(runner.describe({ workspaceRoot: dir, settings }), 'ng test with Vitest');
+  write({ builder: '@angular/build:unit-test', options: { runner: 'karma' } });
+  assert.equal(detectAngularRunner(dir), 'karma');
+  write({ builder: '@angular-devkit/build-angular:karma' });
+  assert.equal(detectAngularRunner(dir), 'karma');
+  assert.equal(detectAngularRunner(path.resolve('test/fixtures/tsproject-vitest')), undefined);
 });

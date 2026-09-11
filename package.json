@@ -2,6 +2,7 @@
   "name": "refactorit",
   "displayName": "RefactorIt",
   "description": "Untangles one method at a time. Finds the methods with too many ways through them, hands your AI assistant a strict brief to break them into smaller pieces without changing what they do, and measures the result. You decide at every step.",
+  "icon": "media/refactoritLogo.png",
   "version": "0.1.3",
   "publisher": "prs",
   "license": "GPL-3.0-only",

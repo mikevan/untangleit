@@ -105,11 +105,11 @@ VS Code has no event bus between extensions, so there are two ways to be told so
 - **Watch the records.** `vscode.workspace.createFileSystemWatcher` on a sibling's public files. This is how a tool learns a KeepSafe checkpoint was taken (a new `manifest.json`) or that DeepTest finished a check (`last-check.json` changed). Works with KeepSafe unmodified.
 - **Exports, for tools built to this document.** A tool returns an object from `activate` with `onDidCheck`, `onDidDecide`, and the same functions as its silent commands. A caller reads it through `getExtension(id).exports` after `activate()`. Exports are a convenience over the commands, never a replacement: everything reachable through exports is reachable through a command, so a tool written in another language or process is not shut out.
 
-## 6. The three flows that exist or are next
+## 6. The three flows: two built, one next
 
 **Hand-off with an undo (built).** DeepTest checks `KeepSafe.keepsafe` is installed and `deeptest.keepSafe.offerCheckpoint` is on; offers; on yes calls `keepsafe.quickCheckpoint`; then the modal; then the brief. If the command throws, DeepTest says KeepSafe could not create the checkpoint and sends nothing.
 
-**Untangle from DeepTest (next).** On "Break it into smaller pieces", DeepTest checks for `prs.untangleit`. If present, it calls `untangleit.method` with `{ path, startLine }` and stops; UntangleIt runs its own gates and its own report. If absent, DeepTest shows the recommendation. The refactor brief that lives in DeepTest today moves to UntangleIt (decision of 2026-09-06). Either way DeepTest judges on the next check.
+**Untangle from DeepTest (built, DeepTest 0.4.3 and UntangleIt 0.1.9, 2026-09-11).** On "Break it into smaller pieces", DeepTest checks for `prs.untangleit`. If present, it calls `untangleit.method` with `{ path, startLine }` (path relative to the workspace folder) and stops; UntangleIt runs its own gates and its own report, and DeepTest records no decision because the person has not yet said yes. If absent, DeepTest uses its own brief and gates, and its setup screen recommends UntangleIt once, with a link. UntangleIt measures the file on demand when the method is not in its last measure, so the call works on a fresh editor. Either way DeepTest judges on the next check. The refactor brief in DeepTest stays as the not-installed fallback.
 
 **Verdict on a checkpoint (next).** After each check DeepTest writes `last-check.json` including the newest KeepSafe checkpoint id. No new KeepSafe surface needed.
 

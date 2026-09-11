@@ -2,8 +2,8 @@
  * DeepTest is the sibling that measures and judges tests (prs.deeptest).
  * UntangleIt does not call it; after an untangling it tells the person to
  * press "Check my code again" in DeepTest when DeepTest is installed, so the
- * pieces get their test bars measured. This is the only file in Refactor
- * It that names DeepTest.
+ * pieces get their test bars measured. This is the only file in UntangleIt
+ * that names DeepTest.
  */
 import * as vscode from 'vscode';
 

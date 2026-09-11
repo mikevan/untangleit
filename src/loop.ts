@@ -102,9 +102,26 @@ export async function untangle(deps: LoopDeps, relativePath: string, startLine: 
   const root = deps.workspaceRoot();
   const plugin = deps.plugin();
   const config = deps.config();
-  const measured = deps.state.measure?.methods.find((m) => m.path === relativePath && m.startLine === startLine);
-  if (!root || !plugin || !measured) {
-    void vscode.window.showErrorMessage('Press "Find the tangled methods" first, and then choose a method to untangle.');
+  if (!root || !plugin) {
+    void vscode.window.showErrorMessage('Open the folder that holds the method, and then choose a method to untangle.');
+    return;
+  }
+  // A sibling tool (DeepTest's "Break it into smaller pieces") calls this
+  // command before UntangleIt has measured anything, so a method that is
+  // not in the last measure is measured on demand from its own file. Only
+  // when the file has no method starting on that line is the person asked
+  // to run "Find the tangled methods" themselves.
+  let measured = deps.state.measure?.methods.find((m) => m.path === relativePath && m.startLine === startLine);
+  if (!measured) {
+    const fresh = await measureFile(plugin, root, relativePath, (l) => deps.output.appendLine(l));
+    const found = fresh.find((m) => m.startLine === startLine);
+    if (found) {
+      measured = { ...found, path: relativePath };
+      deps.output.appendLine(`Measured ${relativePath} on demand for ${found.name}() at line ${startLine}.`);
+    }
+  }
+  if (!measured) {
+    void vscode.window.showErrorMessage(`No method starts on line ${startLine} of ${relativePath}. Press "Find the tangled methods", and then choose a method to untangle.`);
     return;
   }
   if (measured.complexity <= config.limit) {

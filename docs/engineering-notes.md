@@ -78,3 +78,14 @@ the old title until "Developer: Reload Window". The footer line inside the
 panel is rendered by the running extension and is always right. The
 instructions now say reload the window, and the same correction applies to
 DeepTest's docs.
+
+## Measure on demand for a sibling's call (0.1.8)
+
+`untangleit.method` looked the method up in the last workspace measure and
+refused when it was missing, which is every call that arrives from
+DeepTest's "Break it into smaller pieces" on a fresh editor. Now, when the
+method is not in the state, the file is measured on demand with
+`measureFile` and the method found by its start line; the person is only
+sent to "Find the tangled methods" when no method starts on that line.
+The limit and the gates are unchanged; the only difference is that the
+door from DeepTest opens without a prior run here.

@@ -69,8 +69,21 @@ export interface FunctionComplexity {
   name: string;
   startLine: number;
   endLine: number;
-  /** McCabe cyclomatic complexity: 1 + decisions inside the function. */
+  /** McCabe cyclomatic complexity: 1 + decisions inside the function. "Ways through" in the UI. */
   complexity: number;
+  /**
+   * Cognitive complexity as published (Campbell, SonarSource 2018): breaks
+   * in linear flow, charged more the deeper they nest. "Tangle (Campbell)".
+   */
+  campbell: number;
+  /**
+   * MikeVan's Better Cognitive Complexity (MBCC): Campbell's rule with one
+   * change, where order carries meaning the reader pays per step (ordered
+   * boolean operands, ordered branch chains on different facts). "Tangle
+   * (MBCC)", and the number UntangleIt ranks and judges by. All three come
+   * from @projectrevivesolutions/complexity.
+   */
+  mbcc: number;
 }
 
 /** Static facts about one file: depth per line, complexity per function. */

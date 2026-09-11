@@ -1,7 +1,7 @@
 /**
  * The loop, with a person at every gate:
  *
- *   1. Show      the method, its ways through, the limit (the card).
+ *   1. Show      the method, its tangle, the limit (the card).
  *   2. Checkpoint the KeepSafe offer, when KeepSafe is installed.
  *   3. Confirm   one modal sentence; nothing is sent before "Yes, send it".
  *   4. Transform the assistant works from the brief. UntangleIt waits.
@@ -22,7 +22,7 @@ import { lineReader } from './paths';
 import { buildUntangleBrief } from './report/brief';
 import { RunRecord, loadRuns, newRunId, openRunFor, saveRuns, upsertRun, whoAmI } from './runs';
 import { ResultState } from './state';
-import { outcomeSentence, ways } from './ui/words';
+import { outcomeSentence, tangle } from './ui/words';
 
 export interface LoopDeps {
   state: ResultState;
@@ -124,11 +124,11 @@ export async function untangle(deps: LoopDeps, relativePath: string, startLine: 
     void vscode.window.showErrorMessage(`No method starts on line ${startLine} of ${relativePath}. Press "Find the tangled methods", and then choose a method to untangle.`);
     return;
   }
-  if (measured.complexity <= config.limit) {
-    void vscode.window.showInformationMessage(`${measured.name}() has ${ways(measured.complexity)}, which is within your limit of ${config.limit}. There is nothing to untangle.`);
+  if (measured.mbcc <= config.limit) {
+    void vscode.window.showInformationMessage(`${measured.name}() has ${tangle(measured.mbcc)}, which is within your limit of ${config.limit}. There is nothing to untangle.`);
     return;
   }
-  const target = { ...measured, limit: config.limit, over: measured.complexity - config.limit };
+  const target = { ...measured, limit: config.limit, over: measured.mbcc - config.limit };
   const existing = openRunFor(deps.state.runs, relativePath, target.name);
   if (existing && existing.status === 'sent') {
     const answer = await vscode.window.showInformationMessage(`${target.name}() was already sent to your assistant on ${existing.startedAt.slice(0, 10)}. Press "Measure again" to see what came back, or send it again.`, 'Measure again', 'Send again');
@@ -140,7 +140,7 @@ export async function untangle(deps: LoopDeps, relativePath: string, startLine: 
       return;
     }
   }
-  const gate = await gates(deps, `break ${target.name}() into pieces that each have at most ${ways(config.limit)}, without changing what it does`);
+  const gate = await gates(deps, `break ${target.name}() into pieces that each have a tangle of at most ${config.limit}, without changing what it does`);
   if (!gate.proceed) {
     return;
   }
@@ -152,6 +152,8 @@ export async function untangle(deps: LoopDeps, relativePath: string, startLine: 
     startLine: target.startLine,
     endLine: target.endLine,
     complexity: target.complexity,
+    campbell: target.campbell,
+    mbcc: target.mbcc,
     limit: config.limit,
     source,
     sourceTruncated: truncated,
@@ -164,7 +166,8 @@ export async function untangle(deps: LoopDeps, relativePath: string, startLine: 
     path: relativePath,
     name: target.name,
     startLine: target.startLine,
-    before: target.complexity,
+    before: target.mbcc,
+    measure: 'mbcc',
     limit: config.limit,
     by: whoAmI(),
     startedAt: new Date().toISOString(),
@@ -176,7 +179,7 @@ export async function untangle(deps: LoopDeps, relativePath: string, startLine: 
   saveRuns(root, runs);
   deps.state.setRuns(runs);
   const how = await handOff(brief);
-  deps.output.appendLine(`Untangle requested for ${relativePath} ${target.name}() (${target.complexity} ways through, limit ${config.limit}). ${how}`);
+  deps.output.appendLine(`Untangle requested for ${relativePath} ${target.name}() (tangle ${target.mbcc} by MBCC, ${target.campbell} by Campbell, ${target.complexity} ways through; limit ${config.limit}). ${how}`);
   void vscode.window.showInformationMessage(`${how} When the assistant says it is done, press "Measure again" on ${target.name}().${gate.checkpointNote}`);
 }
 
@@ -260,7 +263,7 @@ export async function measureAgain(deps: LoopDeps, relativePath: string, name: s
 }
 
 async function anotherRound(deps: LoopDeps, plugin: LanguagePlugin, root: string, config: UntangleItConfig, run: RunRecord, comparison: Comparison): Promise<void> {
-  const gate = await gates(deps, `keep untangling ${run.name}() and the pieces that are still over ${ways(run.limit)}, without changing what the code does`);
+  const gate = await gates(deps, `keep untangling ${run.name}() and the pieces whose tangle is still over ${run.limit}, without changing what the code does`);
   if (!gate.proceed) {
     return;
   }
@@ -272,6 +275,8 @@ async function anotherRound(deps: LoopDeps, plugin: LanguagePlugin, root: string
     startLine: anchor?.startLine ?? run.startLine,
     endLine: anchor?.endLine ?? run.startLine,
     complexity: anchor?.complexity ?? run.before,
+    campbell: anchor?.campbell ?? run.before,
+    mbcc: anchor?.mbcc ?? run.before,
     limit: run.limit,
     source,
     sourceTruncated: truncated,

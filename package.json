@@ -3,7 +3,7 @@
   "displayName": "UntangleIt",
   "description": "Untangles one method at a time. Finds the methods with too many ways through them, hands your AI assistant a strict brief to break them into smaller pieces without changing what they do, and measures the result. You decide at every step.",
   "icon": "media/untangleitLogo.png",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "publisher": "prs",
   "license": "GPL-3.0-only",
   "repository": {
@@ -43,7 +43,7 @@
       "activitybar": [
         {
           "id": "untangleit",
-          "title": "UntangleIt 0.1.9",
+          "title": "UntangleIt 0.1.11",
           "icon": "media/untangleit.svg"
         }
       ]
@@ -53,9 +53,9 @@
         {
           "type": "webview",
           "id": "untangleit.sidebar",
-          "name": "UntangleIt 0.1.9",
+          "name": "UntangleIt 0.1.11",
           "icon": "media/untangleit.svg",
-          "contextualTitle": "UntangleIt 0.1.9"
+          "contextualTitle": "UntangleIt 0.1.11"
         }
       ]
     },
@@ -157,9 +157,9 @@
         },
         "untangleit.limit": {
           "type": "number",
-          "default": 5,
+          "default": 15,
           "minimum": 1,
-          "description": "Most ways through one method before it counts as tangled. Every piece produced by an untangling must also fit under this."
+          "description": "The most tangle one method may have before it counts as tangled. Tangle is MikeVan's Better Cognitive Complexity (MBCC), which counts how hard a method is to follow. Every piece produced by an untangling must also fit under this."
         },
         "untangleit.rounds": {
           "type": "number",
@@ -175,7 +175,7 @@
         "untangleit.showNumbers": {
           "type": "boolean",
           "default": false,
-          "description": "Show the engineer's numbers (cyclomatic complexity) next to the plain words."
+          "description": "Show the engineer's numbers (MBCC, Campbell's Cognitive Complexity, and cyclomatic complexity) next to the plain words."
         }
       }
     }
@@ -199,6 +199,7 @@
     "vitest": "^3.2.7"
   },
   "dependencies": {
+    "@projectrevivesolutions/complexity": "file:../complexity",
     "web-tree-sitter": "0.27.0"
   }
 }

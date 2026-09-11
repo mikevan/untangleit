@@ -1,12 +1,19 @@
 /**
- * The pure model. No vscode, no file system. Given methods with their ways
- * through, it says which are tangled, ranks them, and, after an untangling,
+ * The pure model. No vscode, no file system. Given methods with their three
+ * numbers, it says which are tangled, ranks them, and, after an untangling,
  * compares before with after to say which pieces came out of a method and
  * whether every one of them fits under the limit.
  *
- * "Ways through" is McCabe cyclomatic complexity: one, plus one per
- * decision. A method is tangled when it is over the limit. The limit is the
- * person's; the default is 5.
+ * The number that ranks and judges is tangle (MBCC): how hard a method is
+ * to follow, which is what untangling is for. Ways through (cyclomatic)
+ * rides along for display and for DeepTest's test bar, and is never the
+ * driver here: a flat switch has many ways through and a tangle of one, and
+ * splitting it into a method per case would leave every piece at one and
+ * the class no easier to follow, so the number does not reward it. The only
+ * extraction that lowers tangle is one that removes nesting. A method is
+ * tangled when its tangle is over the limit. The limit is the person's;
+ * the default is 15 (SonarSource's published default for cognitive
+ * complexity per method).
  */
 import { FunctionComplexity } from './types';
 
@@ -16,15 +23,15 @@ export interface MeasuredMethod extends FunctionComplexity {
 
 export interface Tangled extends MeasuredMethod {
   limit: number;
-  /** Ways through above the limit. Always at least 1. */
+  /** Tangle (MBCC) above the limit. Always at least 1. */
   over: number;
 }
 
-/** Tangled methods, worst first, then by path and line for a stable order. */
+/** Tangled methods, worst first by tangle (MBCC), then by path and line for a stable order. */
 export function rankTangled(methods: MeasuredMethod[], limit: number): Tangled[] {
   return methods
-    .filter((m) => m.complexity > limit)
-    .map((m) => ({ ...m, limit, over: m.complexity - limit }))
+    .filter((m) => m.mbcc > limit)
+    .map((m) => ({ ...m, limit, over: m.mbcc - limit }))
     .sort((a, b) => b.over - a.over || a.path.localeCompare(b.path) || a.startLine - b.startLine);
 }
 
@@ -46,8 +53,10 @@ export interface Snapshot {
   startLine: number;
   endLine: number;
   complexity: number;
+  campbell: number;
+  mbcc: number;
   /** Every method in the same file at the time, so new pieces can be told from old neighbours. */
-  siblings: Array<{ name: string; startLine: number; complexity: number }>;
+  siblings: Array<{ name: string; startLine: number; complexity: number; campbell: number; mbcc: number }>;
 }
 
 export function snapshot(target: MeasuredMethod, fileMethods: FunctionComplexity[]): Snapshot {
@@ -57,7 +66,9 @@ export function snapshot(target: MeasuredMethod, fileMethods: FunctionComplexity
     startLine: target.startLine,
     endLine: target.endLine,
     complexity: target.complexity,
-    siblings: fileMethods.map((m) => ({ name: m.name, startLine: m.startLine, complexity: m.complexity })),
+    campbell: target.campbell,
+    mbcc: target.mbcc,
+    siblings: fileMethods.map((m) => ({ name: m.name, startLine: m.startLine, complexity: m.complexity, campbell: m.campbell, mbcc: m.mbcc })),
   };
 }
 
@@ -66,7 +77,9 @@ export interface Piece {
   startLine: number;
   endLine: number;
   complexity: number;
-  /** Over the limit by this much; 0 when it fits. */
+  campbell: number;
+  mbcc: number;
+  /** Tangle (MBCC) over the limit by this much; 0 when it fits. */
   over: number;
   /** 'original' is the method that was untangled; 'new' appeared since the snapshot; 'changed' existed and its ways through moved. */
   kind: 'original' | 'new' | 'changed';
@@ -78,35 +91,44 @@ export interface Comparison {
   pieces: Piece[];
   /** Every piece fits under the limit. */
   withinLimit: boolean;
-  /** Sum of ways through over the limit across the pieces; 0 when done. */
+  /** Sum of tangle (MBCC) over the limit across the pieces; 0 when done. */
   remainingOver: number;
-  /** The original still exists and has fewer ways through than before. */
+  /** The original still exists and has a lower tangle than before. */
   moved: boolean;
-  /** Ways through before, for the sentence "was 48". */
+  /** Tangle (MBCC) before, for the sentence "was 48". */
   before: number;
 }
 
 /**
  * Compares the file's methods now with the snapshot. Pieces are the original
  * method (by name) plus every method that is new since the snapshot or whose
- * ways through changed, on the reasoning that an untangling touches only
- * what it creates or splits. Unrelated neighbours that did not move are left
- * out, so they are neither credited nor blamed.
+ * numbers changed, on the reasoning that an untangling touches only what it
+ * creates or splits. Unrelated neighbours that did not move are left out,
+ * so they are neither credited nor blamed. Judged by tangle (MBCC).
  */
 export function compare(before: Snapshot, after: FunctionComplexity[], limit: number): Comparison {
   const oldByName = new Map(before.siblings.map((s) => [s.name, s]));
   const pieces: Piece[] = [];
   let original: Piece | undefined;
+  const piece = (m: FunctionComplexity, kind: Piece['kind']): Piece => ({
+    name: m.name,
+    startLine: m.startLine,
+    endLine: m.endLine,
+    complexity: m.complexity,
+    campbell: m.campbell,
+    mbcc: m.mbcc,
+    over: Math.max(0, m.mbcc - limit),
+    kind,
+  });
   for (const m of after) {
     const old = oldByName.get(m.name);
-    const over = Math.max(0, m.complexity - limit);
     if (m.name === before.name) {
-      original = { name: m.name, startLine: m.startLine, endLine: m.endLine, complexity: m.complexity, over, kind: 'original' };
+      original = piece(m, 'original');
       pieces.push(original);
     } else if (!old) {
-      pieces.push({ name: m.name, startLine: m.startLine, endLine: m.endLine, complexity: m.complexity, over, kind: 'new' });
-    } else if (old.complexity !== m.complexity) {
-      pieces.push({ name: m.name, startLine: m.startLine, endLine: m.endLine, complexity: m.complexity, over, kind: 'changed' });
+      pieces.push(piece(m, 'new'));
+    } else if (old.mbcc !== m.mbcc || old.complexity !== m.complexity) {
+      pieces.push(piece(m, 'changed'));
     }
   }
   pieces.sort((a, b) => b.over - a.over || a.startLine - b.startLine);
@@ -116,7 +138,7 @@ export function compare(before: Snapshot, after: FunctionComplexity[], limit: nu
     pieces,
     withinLimit: pieces.length > 0 && remainingOver === 0,
     remainingOver,
-    moved: original !== undefined && original.complexity < before.complexity,
-    before: before.complexity,
+    moved: original !== undefined && original.mbcc < before.mbcc,
+    before: before.mbcc,
   };
 }

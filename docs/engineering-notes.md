@@ -89,3 +89,81 @@ method is not in the state, the file is measured on demand with
 sent to "Find the tangled methods" when no method starts on that line.
 The limit and the gates are unchanged; the only difference is that the
 door from DeepTest opens without a prior run here.
+
+## Tangle drives the tool (0.1.11)
+
+Until now UntangleIt ranked and judged by ways through (cyclomatic), the
+same number DeepTest uses for its test bar, with a limit of 5. The first
+field runs showed the flaw: the top of the list was three flat message
+switches at 28, 28, and 23 ways through, none of them hard to follow, and
+the brief would have sent an assistant to split them into a method per
+case. That move changes the depth of nothing: a class of 100 disconnected
+methods has 100 paths through it and a depth of 1. It is the exact
+outcome the toolkit exists to prevent.
+
+The number that answers UntangleIt's question ("can a person follow this?")
+is tangle, and specifically MikeVan's Better Cognitive Complexity (MBCC):
+Campbell's Cognitive Complexity with one change, applied in two places.
+Where order carries meaning the reader pays per step: a boolean run whose
+operands depend on each other or make calls costs one per operand, and an
+if / elif / else chain whose branches test different facts costs k for the
+k-th branch. A chain on one value against constants is a switch in
+disguise and costs one, as Campbell charges a switch. Both changes, the
+reasoning, and what still needs validating are in the paper "MikeVan's
+Better Cognitive Complexity: why it exists and what it is for" (in the
+toolkit docs); the counting rules with worked cases are in the shared
+library's docs/measures.md.
+
+What changed here:
+
+- The two structure parsers are now the same files DeepTest uses
+  (src/languages/python/structure.ts, src/languages/typescript/structure.ts)
+  and take all three numbers per function from
+  `@projectrevivesolutions/complexity` (a `file:../complexity` link, so the
+  library must be built before this tree is, and packaging must use
+  `--no-dependencies` for the same reason DeepTest does). The old
+  cyclomatic-only `complexityOf` walkers are gone; UntangleIt no longer
+  owns a counter of its own.
+- `rankTangled` filters and sorts on `mbcc`; `over` is mbcc minus the
+  limit. `snapshot` and `compare` carry all three numbers and judge every
+  piece by mbcc; `moved` and `before` are tangle. A flat switch with 29
+  ways through and a tangle of 1 is never on the list, at any limit, and
+  the test says so.
+- The limit is a tangle limit, default 15 (SonarSource's published default
+  for cognitive complexity per method). It was 5 ways through.
+- Words: "big() has a tangle of 14. Your limit is 15." Behind the switch:
+  "(MBCC 14, Campbell 12, 99 ways through; 9 over)". The card's meaning
+  sentence says what tangle is and that ways through is DeepTest's number
+  and does not change here.
+- The brief targets tangle, explains how MBCC counts in five lines, and
+  has a new section, "What lowers tangle, and what does not": pull nested
+  blocks up, replace nested ifs with guard clauses, name an ordered
+  condition; never split a flat switch or a flat chain into a method per
+  case, never extract a flat run of statements. The done list and the
+  judge sentence are unchanged in shape.
+- `untangleit.api.measure` returns `cyclomatic`, `campbell`, and `mbcc` per
+  method (and keeps `waysThrough` as an alias of `cyclomatic` so a caller
+  written against 0.1.x still reads), with `over` computed on mbcc.
+
+Fixture arithmetic, checked against the library: `classify` in both
+fixtures is 5 ways through, Campbell 5, MBCC 6 (a two-branch chain on
+different facts, 1 + 2, a nested if at 2, one independent `&&` run at 1);
+`describeNumber` / `describe_number` is 8 on all three. At the old limit of
+5 that ranks describeNumber (3 over) then classify (1 over); at the default
+15 nothing is tangled, which is right for a fixture that small.
+
+Verification on Michael's machine still owed: `npm install` (for the
+link), `npm test`, build, install, then "Find the tangled methods" on
+HelloWorld; `pick_greeting()` should top the list with its tangle, and the
+brief it produces should carry the "What lowers tangle" section.
+
+## The record says which number it holds (0.1.11)
+
+A run record's `before` was ways through under 0.1.x and is tangle from
+0.1.11, and the panel's "was N" badge had no way to tell them apart: a
+HelloWorld record from 2026-09-11 read "was a tangle of 15" for a method
+that had 15 ways through. New records carry `measure: "mbcc"`; a record
+without the field is read as ways through and worded "was 15 ways
+through". The runs file stays at version 1, because the shape only grew,
+which is the rule in toolkit-api.md for public records. Pinned in
+test/tangle.test.ts (`wasBefore`).

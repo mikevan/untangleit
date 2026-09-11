@@ -181,7 +181,7 @@ export class ConfigPanel {
 
   <h2>What counts as tangled</h2>
   <div class="row">
-    <div><label for="limit">Most ways through one method</label><input type="number" id="limit" min="1" step="1" value="${c.limit}"><p class="hint">Above this, a method is too tangled. Every piece produced by an untangling must fit under it too.</p></div>
+    <div><label for="limit">The most tangle one method may have</label><input type="number" id="limit" min="1" step="1" value="${c.limit}"><p class="hint">Tangle is how hard a method is to follow: it grows with every decision, and grows faster the deeper decisions nest. Above this limit a method is too tangled. Every piece produced by an untangling must fit under it too.</p></div>
     <div><label for="rounds">Rounds before UntangleIt stops</label><input type="number" id="rounds" min="1" step="1" value="${c.rounds}"><p class="hint">How many times "Measure again" may offer to send the method back before it hands the result to you.</p></div>
   </div>
   <label class="check"><input type="checkbox" id="showNumbers" ${c.showNumbers ? 'checked' : ''}> Show the engineer's numbers next to the plain words.</label>

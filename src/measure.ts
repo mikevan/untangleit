@@ -1,6 +1,6 @@
 /**
  * Measures the workspace: every source file of the chosen language, parsed
- * to its methods and their ways through. Pure measurement; no AI, no test
+ * to its methods and their three numbers. Pure measurement; no AI, no test
  * run. This is the method-call half of the tool.
  */
 import * as fs from 'node:fs';

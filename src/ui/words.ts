@@ -1,9 +1,11 @@
 /**
  * Every sentence UntangleIt says, in one place, written for Jeff first.
- * Engineer's terms (cyclomatic complexity) appear only beside the plain
- * phrase and only when "Show the engineer's numbers" is on. Every sentence
- * is complete and ends with punctuation; every instruction names the
- * control exactly as it is labelled on screen.
+ * The plain word is "tangle": how hard a method is to follow. The number
+ * behind it is MikeVan's Better Cognitive Complexity (MBCC); Campbell's
+ * published Cognitive Complexity and ways through (cyclomatic complexity)
+ * appear beside it only when "Show the engineer's numbers" is on. Every
+ * sentence is complete and ends with punctuation; every instruction names
+ * the control exactly as it is labelled on screen.
  */
 import { Comparison, Tangled, WorkspaceMeasure } from '../engine/tangle';
 import { RunRecord } from '../runs';
@@ -19,6 +21,21 @@ export function ways(n: number): string {
   return `${n} way${n === 1 ? '' : 's'} through`;
 }
 
+/** "a tangle of 14" */
+export function tangle(n: number): string {
+  return `a tangle of ${n}`;
+}
+
+/** "was a tangle of 15", or "was 15 ways through" for a record from 0.1.x, which judged by ways through. */
+export function wasBefore(r: { before: number; measure?: 'ways' | 'mbcc' }): string {
+  return r.measure === 'mbcc' ? `was ${tangle(r.before)}` : `was ${ways(r.before)}`;
+}
+
+/** The three numbers for the engineer's switch: "MBCC 14, Campbell 12, 9 ways through". */
+export function threeNumbers(m: { complexity: number; campbell: number; mbcc: number }): string {
+  return `MBCC ${m.mbcc}, Campbell ${m.campbell}, ${ways(m.complexity)}`;
+}
+
 export function plural(n: number, noun: string): string {
   return `${n} ${noun}${n === 1 ? '' : 's'}`;
 }
@@ -29,25 +46,25 @@ export function verdict(m: WorkspaceMeasure): { ready: boolean; headline: string
     return { ready: true, headline: 'No methods were found to measure.', detail: 'Check the folder with the code on the setup screen.' };
   }
   if (m.tangled.length === 0) {
-    return { ready: true, headline: 'Every method is within your limit.', detail: `${plural(m.methods.length, 'method')} in ${plural(m.files, 'file')}, none with more than ${ways(m.limit)}.` };
+    return { ready: true, headline: 'Every method is within your limit.', detail: `${plural(m.methods.length, 'method')} in ${plural(m.files, 'file')}, none with ${tangle(m.limit + 1)} or more.` };
   }
   const worst = m.tangled[0];
   return {
     ready: false,
     headline: `${plural(m.tangled.length, 'method')} ${m.tangled.length === 1 ? 'is' : 'are'} too tangled.`,
-    detail: `Your limit is ${ways(m.limit)}. The worst is ${worst.name}() with ${worst.complexity}. ${plural(m.methods.length, 'method')} measured in ${plural(m.files, 'file')}.`,
+    detail: `Your limit is ${tangle(m.limit)}. The worst is ${worst.name}() with ${tangle(worst.mbcc)}. ${plural(m.methods.length, 'method')} measured in ${plural(m.files, 'file')}.`,
   };
 }
 
 /** One line for a tangled method in the list. */
 export function tangledSentence(t: Tangled, voice: Voice): string {
-  const plain = `${t.name}() has ${ways(t.complexity)}. Your limit is ${t.limit}.`;
-  return voice.showNumbers ? `${plain} (cyclomatic complexity ${t.complexity}, ${t.over} over)` : plain;
+  const plain = `${t.name}() has ${tangle(t.mbcc)}. Your limit is ${t.limit}.`;
+  return voice.showNumbers ? `${plain} (${threeNumbers(t)}; ${t.over} over)` : plain;
 }
 
 /** What "too tangled" means, for the card and the report. */
 export function meaning(t: Tangled): string {
-  return `This one method makes ${t.complexity - 1} decisions, so there are ${t.complexity} different paths a program can take through it, and each one has to be tested before anyone can say it works. Above ${t.limit} a person cannot hold it in their head, and any change can break a path nobody thought to test.`;
+  return `Tangle is how hard a method is to follow. It goes up with every decision, more for a decision nested inside another, and more again when the reader has to hold earlier checks in their head to understand a later one. ${t.name}() has ${tangle(t.mbcc)}; above ${t.limit} a person cannot hold it in their head, and any change can break something nobody saw. It also has ${ways(t.complexity)}, which is how many tests it needs; that number is DeepTest's job and does not change here.`;
 }
 
 export function testsSentence(t: TestRunSummary): string {
@@ -69,12 +86,12 @@ export function outcomeSentence(c: Comparison, tests: TestRunSummary | undefined
   if (!c.original && c.pieces.length === 0) {
     return `${name}() is gone and no new methods appeared in its file. If the assistant moved it to another file, open that file and measure it there.`;
   }
-  const piecesText = `${plural(c.pieces.length, 'piece')}: ${c.pieces.map((p) => `${p.name}() ${p.complexity}`).join(', ')}.`;
+  const piecesText = `${plural(c.pieces.length, 'piece')}: ${c.pieces.map((p) => `${p.name}() ${p.mbcc}`).join(', ')}.`;
   if (c.withinLimit) {
     return `Untangled into ${piecesText} Every piece is within your limit of ${limit}.${tests ? ` ${testsSentence(tests)}` : ''}`;
   }
   const over = c.pieces.filter((p) => p.over > 0);
-  return `Not done. ${piecesText} ${plural(over.length, 'piece')} ${over.length === 1 ? 'is' : 'are'} still over your limit of ${limit}${c.moved ? `; ${name}() went from ${c.before} to ${c.original?.complexity}` : ''}.${tests ? ` ${testsSentence(tests)}` : ''} Your call.`;
+  return `Not done. ${piecesText} ${plural(over.length, 'piece')} ${over.length === 1 ? 'is' : 'are'} still over your limit of ${limit}${c.moved ? `; ${name}() went from ${c.before} to ${c.original?.mbcc}` : ''}.${tests ? ` ${testsSentence(tests)}` : ''} Your call.`;
 }
 
 /** The status line for an open or finished run, under a method in the list. */
@@ -84,7 +101,7 @@ export function runSentence(r: RunRecord): string {
     case 'sent':
       return `Sent to your assistant on ${date} (round ${r.rounds}). When it says done, press "Measure again".`;
     case 'within-limit':
-      return `Untangled on ${r.measuredAt?.slice(0, 10) ?? date}: was ${r.before}, every piece within ${r.limit}.`;
+      return `Untangled on ${r.measuredAt?.slice(0, 10) ?? date}: ${wasBefore(r)}, every piece within ${r.limit}.`;
     case 'still-over':
       return `After ${plural(r.rounds, 'round')}, still over your limit. ${r.outcome ?? ''}`.trim();
     case 'tests-fail':

@@ -6,7 +6,7 @@ export interface UntangleItConfig {
   testsPath: string;
   sourceRoot: string;
   languageSettings: Record<string, Record<string, unknown>>;
-  /** Most ways through one method before it is tangled; every piece must fit under it too. */
+  /** The most tangle (MBCC) one method may have before it is tangled; every piece must fit under it too. */
   limit: number;
   /** Rounds of untangle-and-measure to offer before stopping. */
   rounds: number;
@@ -21,7 +21,7 @@ export function readConfig(folder?: vscode.WorkspaceFolder): UntangleItConfig {
     testsPath: c.get<string>('testsPath', ''),
     sourceRoot: c.get<string>('sourceRoot', ''),
     languageSettings: c.get<Record<string, Record<string, unknown>>>('languageSettings', {}),
-    limit: Math.max(1, c.get<number>('limit', 5)),
+    limit: Math.max(1, c.get<number>('limit', 15)),
     rounds: Math.max(1, c.get<number>('rounds', 3)),
     keepSafe: { offerCheckpoint: c.get<boolean>('keepSafe.offerCheckpoint', true) },
     showNumbers: c.get<boolean>('showNumbers', false),

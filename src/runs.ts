@@ -16,7 +16,15 @@ export interface RunRecord {
   path: string;
   name: string;
   startLine: number;
+  /** The number the run was judged by, before. See `measure` for which number. */
   before: number;
+  /**
+   * Which measure `before`, `limit`, and the pieces' `over` were judged by.
+   * 'mbcc' (tangle) from 0.1.11. Absent on records written by 0.1.x, which
+   * judged by ways through; readers treat a missing value as 'ways'. Added
+   * without a file-version bump because the shape only grew.
+   */
+  measure?: 'ways' | 'mbcc';
   limit: number;
   by: string;
   startedAt: string;

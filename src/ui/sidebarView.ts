@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { ResultState } from '../state';
 import { openRunFor } from '../runs';
-import { PRODUCT, Voice, meaning, runSentence, tangledSentence, verdict, ways } from './words';
+import { PRODUCT, Voice, meaning, runSentence, tangledSentence, tangle, verdict, wasBefore } from './words';
 
 export interface SidebarMessage {
   type: 'run' | 'configure' | 'output' | 'open' | 'untangle' | 'measureAgain' | 'toggleNumbers';
@@ -108,7 +108,7 @@ ${this.body(voice)}
     const s = this.state;
     switch (s.phase) {
       case 'running':
-        return `<div class="verdict neutral"><strong>Measuring your code.</strong><span class="muted">${PRODUCT} is counting the ways through every method.</span></div>
+        return `<div class="verdict neutral"><strong>Measuring your code.</strong><span class="muted">${PRODUCT} is measuring the tangle of every method.</span></div>
           <button class="primary" disabled>Measuring.</button>
           <div class="links"><a data-act="output">Show the log</a></div>`;
       case 'noCode':
@@ -122,7 +122,7 @@ ${this.body(voice)}
       case 'results':
         return this.results(voice);
       default:
-        return `<div class="verdict neutral"><strong>This project has not been measured yet.</strong><span class="muted">${PRODUCT} counts the ways through every method, shows the ones that are too tangled to trust, and hands your AI assistant a strict brief to untangle them without changing what they do. You decide at every step.</span></div>
+        return `<div class="verdict neutral"><strong>This project has not been measured yet.</strong><span class="muted">${PRODUCT} measures how tangled every method is, shows the ones that are too tangled to trust, and hands your AI assistant a strict brief to untangle them without changing what they do. You decide at every step.</span></div>
           <button class="primary" data-act="run">Find the tangled methods</button>
           <div class="links"><a data-act="configure">Tell me where the code is</a></div>`;
     }
@@ -149,7 +149,7 @@ ${this.body(voice)}
       for (const r of open) {
         const attrs = `data-path="${esc(r.path)}" data-line="${r.startLine}" data-name="${esc(r.name)}"`;
         parts.push(`<div class="card">
-          <div class="where"><a data-act="open" ${attrs}>${esc(r.name)}() in ${esc(r.path)}</a><span class="badge">was ${esc(ways(r.before))}</span></div>
+          <div class="where"><a data-act="open" ${attrs}>${esc(r.name)}() in ${esc(r.path)}</a><span class="badge">${esc(wasBefore(r))}</span></div>
           <div class="run">${esc(runSentence(r))}</div>
           <div class="actions"><button class="small primary-ish" data-act="measureAgain" ${attrs}>Measure again</button><button class="small" data-act="open" ${attrs}>Open</button></div>
         </div>`);
@@ -163,7 +163,7 @@ ${this.body(voice)}
         const run = openRunFor(s.runs, t.path, t.name);
         const done = s.runs.runs.filter((r) => r.path === t.path && r.name === t.name && r.status === 'within-limit').pop();
         parts.push(`<div class="card">
-          <div class="where"><a data-act="open" ${attrs}>${esc(t.path)} line ${t.startLine}</a><span class="badge">${esc(ways(t.complexity))}</span></div>
+          <div class="where"><a data-act="open" ${attrs}>${esc(t.path)} line ${t.startLine}</a><span class="badge">${esc(tangle(t.mbcc))}</span></div>
           <div>${esc(tangledSentence(t, voice))}</div>
           <div class="muted">${esc(meaning(t))}</div>
           ${run ? `<div class="run">${esc(runSentence(run))}</div>` : done ? `<div class="run">${esc(runSentence(done))}</div>` : ''}
@@ -173,7 +173,7 @@ ${this.body(voice)}
       if (m.tangled.length > top.length) {
         parts.push(`<details><summary>${m.tangled.length - top.length} more tangled methods.</summary><ul class="rest">${m.tangled
           .slice(top.length)
-          .map((t) => `<li><a data-act="open" data-path="${esc(t.path)}" data-line="${t.startLine}">${esc(t.name)}() in ${esc(t.path)}</a><span>${esc(ways(t.complexity))} <button class="small" data-act="untangle" data-path="${esc(t.path)}" data-line="${t.startLine}" data-name="${esc(t.name)}">Untangle it</button></span></li>`)
+          .map((t) => `<li><a data-act="open" data-path="${esc(t.path)}" data-line="${t.startLine}">${esc(t.name)}() in ${esc(t.path)}</a><span>${esc(tangle(t.mbcc))} <button class="small" data-act="untangle" data-path="${esc(t.path)}" data-line="${t.startLine}" data-name="${esc(t.name)}">Untangle it</button></span></li>`)
           .join('')}</ul></details>`);
       }
     }

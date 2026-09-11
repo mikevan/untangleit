@@ -238,7 +238,7 @@ export function activate(context: vscode.ExtensionContext): UntangleItApi {
       try {
         const methods = await measureFile(plugin, workspaceRootOf(folder), args.path, (l) => output.appendLine(l));
         const limit = readConfig(folder).limit;
-        return envelope(true, { result: { path: args.path, limit, methods: methods.map((m) => ({ name: m.name, startLine: m.startLine, endLine: m.endLine, waysThrough: m.complexity, over: Math.max(0, m.complexity - limit) })) } });
+        return envelope(true, { result: { path: args.path, limit, methods: methods.map((m) => ({ name: m.name, startLine: m.startLine, endLine: m.endLine, waysThrough: m.complexity, cyclomatic: m.complexity, campbell: m.campbell, mbcc: m.mbcc, over: Math.max(0, m.mbcc - limit) })) } });
       } catch (err) {
         return envelope(false, { error: `UntangleIt could not measure ${args.path}: ${err instanceof Error ? err.message : String(err)}` });
       }

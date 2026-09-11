@@ -2,7 +2,7 @@
 
 Updated 2026-09-12. Source tree at C:\workspace\UntangleIt. Publisher `prs`, extension id `prs.untangleit`.
 
-## 2026-09-12: tangle (MBCC) drives the list, the judge, and the brief (0.1.11)
+## 2026-09-12: tangle (MBCC) drives the list, the judge, and the brief (built as 0.1.11, shipped as 1.0.0)
 
 - Ranking, `over`, `compare`, and the brief all read MBCC; the limit is a
   tangle limit, default 15. Parsers are DeepTest's, numbers from
@@ -17,7 +17,7 @@ Updated 2026-09-12. Source tree at C:\workspace\UntangleIt. Publisher `prs`, ext
   first with "has a tangle of N. Your limit is 15."; "Untangle it" produces
   a brief with the section "What lowers tangle, and what does not".
 
-## What exists (v0.1.11; the core below dates from 0.1.3 and is unchanged except where the 2026-09-12 section says)
+## What exists (v1.0.0; the core below dates from 0.1.3 and is unchanged except where the 2026-09-12 section says)
 
 - One language contract (src/languages/types.ts) and a registry; nothing above the contract names a language. TypeScript/JavaScript (Jest, Vitest) and Python (pytest) plugins: detection, measuring through tree-sitter, and running the project's own tests.
 - The engine (src/engine/tangle.ts): rank tangled methods by tangle (MBCC), snapshot before an untangling, compare after, pieces with all three numbers, judged by tangle.
@@ -37,7 +37,7 @@ npm run build                                   # dist/extension.js and the wasm
 npx @vscode/vsce package --no-dependencies      # required: the complexity link must not be walked
 ```
 
-Then, in VS Code: Extensions view (Ctrl+Shift+X), the "..." button at the top right, "Install from VSIX...", pick the file, "Install", then Ctrl+Shift+P, "Developer: Reload Window", Enter. ("Restart Extensions" is not enough: the panel header is drawn by the window, not by the extension, and only a window reload reads the new build's title.) The UntangleIt icon is in the activity bar and the panel header reads "UntangleIt 0.1.11".
+Then, in VS Code: Extensions view (Ctrl+Shift+X), the "..." button at the top right, "Install from VSIX...", pick the file, "Install", then Ctrl+Shift+P, "Developer: Reload Window", Enter. ("Restart Extensions" is not enough: the panel header is drawn by the window, not by the extension, and only a window reload reads the new build's title.) The UntangleIt icon is in the activity bar and the panel header reads "UntangleIt 1.0.0".
 
 ## Next
 

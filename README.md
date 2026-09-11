@@ -86,6 +86,8 @@ The next release measures with the shared library `@projectrevivesolutions/compl
 | Python | pytest | tree-sitter-python |
 | TypeScript / JavaScript | Jest or Vitest | tree-sitter typescript, tsx, javascript |
 
+Next, one minor number per language across the whole toolkit: Java (1.1), C# (1.2), C++ (1.3), then Go or PHP (1.4). JavaScript frameworks that allow testing (React, Vue, Angular, and their runners) are runner work inside the existing plugin and ship as patches. The plan and what each language must have before it ships are in docs/toolkit/toolkit-roadmap.md.
+
 One contract, every language: the panel, brief, setup screen, and record know no language. Java, C#, C++, and one of PHP or Go are next.
 
 ---

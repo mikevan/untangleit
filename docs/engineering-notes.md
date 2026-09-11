@@ -167,3 +167,19 @@ without the field is read as ways through and worded "was 15 ways
 through". The runs file stays at version 1, because the shape only grew,
 which is the rule in toolkit-api.md for public records. Pinned in
 test/tangle.test.ts (`wasBefore`).
+
+## Single-file components (1.0.3)
+
+`.vue` and `.svelte` files are walked and measured. The structure source
+hands the file to the library's `extractScript`, which returns the whole
+file with everything outside the `<script>` blocks blanked and every
+newline kept, so a method's start and end lines are the editor's lines
+and the loop reads and rewrites exactly the lines it would in a `.ts`
+file. The grammar follows the blocks' `lang` attributes. The template is
+not parsed; its decisions wait for a later slot. Fixture test/fixtures/sfc
+(a Vue, a Svelte, and a template-only component): `classify` measures
+5/5/7 at line 4 in the .vue and line 2 in the .svelte; the template-only
+file yields no methods. The extraction and its tests live in the library
+(src/sfc.ts, test/sfc.test.ts) so DeepTest and UntangleIt read a component
+the same way. DeepTest's engineering notes, "Single-file components are
+parsed (1.0.3)", has the reasoning.

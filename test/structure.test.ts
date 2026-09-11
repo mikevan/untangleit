@@ -47,3 +47,26 @@ test('plugins walk sources and leave tests out', () => {
   assert.equal(typescriptPlugin.isTestFile('test/calc.test.ts'), true);
   assert.equal(pythonPlugin.isTestFile('tests/test_calc.py'), true);
 });
+
+test('single-file components: the script block is measured on its real lines, the template is not (1.0.3)', async () => {
+  const source = await typescriptPlugin.createStructureSource({ wasmDir });
+  try {
+    const vue = source.measure('src/Picker.vue', fs.readFileSync(path.join('test', 'fixtures', 'sfc', 'src', 'Picker.vue'), 'utf8'));
+    const classify = vue.find((m) => m.name === 'classify');
+    assert.ok(classify, vue.map((m) => m.name).join(', '));
+    assert.equal(classify.startLine, 4, 'the line in the editor, not the line in the block');
+    assert.equal(classify.endLine, 14);
+    // if (1) + nested if (2) + ordered operands (name && name.trim(): 2 under MBCC, 1 under Campbell) + else if (Campbell 1, MBCC 2).
+    assert.deepEqual([classify.complexity, classify.campbell, classify.mbcc], [5, 5, 7]);
+    const svelte = source.measure('src/Picker.svelte', fs.readFileSync(path.join('test', 'fixtures', 'sfc', 'src', 'Picker.svelte'), 'utf8'));
+    const sv = svelte.find((m) => m.name === 'classify');
+    assert.ok(sv);
+    assert.equal(sv.startLine, 2);
+    assert.deepEqual([sv.complexity, sv.campbell, sv.mbcc], [5, 5, 7]);
+    assert.deepEqual(source.measure('src/Plain.vue', fs.readFileSync(path.join('test', 'fixtures', 'sfc', 'src', 'Plain.vue'), 'utf8')), [], 'no script block, no functions');
+  } finally {
+    source.dispose();
+  }
+  const walked = typescriptPlugin.walkSources(path.resolve('test/fixtures/sfc'), 'src', 'test');
+  assert.deepEqual(walked.sort(), ['src/Picker.svelte', 'src/Picker.vue', 'src/Plain.vue']);
+});

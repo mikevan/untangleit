@@ -2,6 +2,15 @@
 
 Updated 2026-09-12. Source tree at C:\workspace\UntangleIt. Publisher `prs`, extension id `prs.untangleit`.
 
+## 2026-09-12, 1.0.3: single-file components
+
+- .vue and .svelte are walked and measured through the library's
+  extractScript; method lines are the editor's lines. Template not parsed.
+- One new test on test/fixtures/sfc; 14 unit tests expected.
+- Verify on HelloWorlds\vue-vitest: "Find the tangled methods" lists
+  pickGreeting() in src/components/GreetingPicker.vue first, and "Open"
+  lands on line 13.
+
 ## 2026-09-12: tangle (MBCC) drives the list, the judge, and the brief (built as 0.1.11, shipped as 1.0.0)
 
 - Ranking, `over`, `compare`, and the brief all read MBCC; the limit is a

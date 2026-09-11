@@ -12,6 +12,7 @@ import { runProcess } from '../shared/process';
 import { createParser, initTreeSitter } from '../shared/treeSitter';
 import { Detection, FieldSpec, HostServices, LanguagePlugin, LanguageSettings, RunContext, StructureEnvironment, StructureSource, TestRunSummary, TestRunner } from '../types';
 import { analyzeTypeScriptTree } from './structure';
+import { extractScript, isSingleFileComponent } from '@projectrevivesolutions/complexity';
 
 export type Runner = 'jest' | 'vitest';
 
@@ -37,7 +38,7 @@ const FIELDS: FieldSpec[] = [
 ];
 
 const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'out', 'build', 'coverage', '.untangleit', '.deeptest', '.keepsafe', '.vscode-test', '.next', '.nuxt', '.svelte-kit', 'vendor']);
-const SOURCE_EXT = /\.(m?[jt]sx?|c[jt]s)$/;
+const SOURCE_EXT = /\.(m?[jt]sx?|c[jt]s|vue|svelte)$/;
 const TEST_FILE = /(\.(test|spec)\.[cm]?[jt]sx?$)/;
 
 export function isTestFile(relativePath: string): boolean {
@@ -220,8 +221,22 @@ class TypeScriptStructureSource implements StructureSource {
 
   measure(relativePath: string, text: string): FunctionComplexity[] {
     const ext = path.extname(relativePath).toLowerCase();
-    const parser = ext === '.tsx' ? this.parsers.tsx : ext === '.ts' || ext === '.mts' || ext === '.cts' ? this.parsers.typescript : this.parsers.javascript;
-    const tree = parser.parse(text);
+    let parser = ext === '.tsx' ? this.parsers.tsx : ext === '.ts' || ext === '.mts' || ext === '.cts' ? this.parsers.typescript : this.parsers.javascript;
+    let source = text;
+    if (isSingleFileComponent(relativePath)) {
+      // A single-file component is measured through its script blocks. The
+      // library blanks everything outside them, newlines kept, so every
+      // function's start and end line is the line in the editor and the
+      // untangle loop reads and rewrites the same lines it would in a .ts
+      // file. The template half is not parsed (1.0.3).
+      const script = extractScript(text);
+      if (!script) {
+        return [];
+      }
+      source = script.source;
+      parser = script.lang === 'tsx' ? this.parsers.tsx : script.lang === 'typescript' ? this.parsers.typescript : this.parsers.javascript;
+    }
+    const tree = parser.parse(source);
     if (!tree) {
       throw new Error(`tree-sitter could not parse ${relativePath}`);
     }
@@ -243,7 +258,7 @@ export const typescriptPlugin: LanguagePlugin = {
   id: 'typescript',
   displayName: 'TypeScript / JavaScript',
   vscodeLanguageIds: ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
-  extensions: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'],
+  extensions: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.vue', '.svelte'],
   configFields: FIELDS,
   isTestFile,
   walkSources,

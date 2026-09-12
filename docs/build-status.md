@@ -1,6 +1,14 @@
 # UntangleIt: build status and run instructions
 
+Michael Van Geertruy, with Claude. Project Revive Solutions, LLC.
+
 Updated 2026-09-12. Source tree at C:\workspace\UntangleIt. Publisher `prs`, extension id `prs.untangleit`.
+
+## 2026-09-12, 1.0.8: Mocha and Playwright component tests in the test gate
+
+- Runners mocha and playwright-ct, detected like DeepTest's; README
+  Languages and Requirements say what shipped in the 1.0 slot; toolkit
+  documents level with DeepTest's. One new test; 16 unit tests expected.
 
 ## 2026-09-12, 1.0.5: Karma projects run headless through ng test
 

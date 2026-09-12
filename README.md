@@ -81,14 +81,17 @@ The next release measures with the shared library `@projectrevivesolutions/compl
 
 ## Languages
 
-| Plugin | Runner | Structure |
+| Plugin | Runners the loop's test gate drives | Structure |
 |---|---|---|
 | Python | pytest | tree-sitter-python |
-| TypeScript / JavaScript | Jest or Vitest | tree-sitter typescript, tsx, javascript |
+| TypeScript / JavaScript | Jest, Vitest, Mocha | tree-sitter typescript, tsx, javascript |
+| React, Vue, Svelte | Jest or Vitest; `.vue` and `.svelte` measured through their script blocks on their real lines | the same grammars |
+| Angular | `ng test` with Vitest or Karma (headless) | the same grammars |
+| Playwright component tests | `playwright test` with the component package | the same grammars |
 
-Next, one minor number per language across the whole toolkit: Java (1.1), C# (1.2), C++ (1.3), then Go or PHP (1.4). JavaScript frameworks that allow testing (React, Vue, Angular, and their runners) are runner work inside the existing plugin and ship as patches. The plan and what each language must have before it ships are in docs/toolkit/toolkit-roadmap.md.
+That is the 1.0 slot of the toolkit's Language Expansion series, done. Next, one minor number per language across the whole toolkit: Java (1.1), C# (1.2), C++ or Go (1.3). The plan and what each language must have before it ships are in docs/toolkit/toolkit-roadmap.md.
 
-One contract, every language: the panel, brief, setup screen, and record know no language. Java, C#, C++, and one of PHP or Go are next.
+One contract, every language: the panel, brief, setup screen, and record know no language.
 
 ---
 
@@ -96,7 +99,7 @@ One contract, every language: the panel, brief, setup screen, and record know no
 
 - Visual Studio Code 1.104.0 or newer.
 - Python projects: the Python the project already uses with `pytest` installed in it.
-- TypeScript / JavaScript projects: Node on PATH and Jest or Vitest in the project.
+- TypeScript / JavaScript projects: Node on PATH and the project's own runner installed: Jest, Vitest, or Mocha; for Angular the project's `@angular/cli` (and Chrome for Karma); for Playwright component tests the component package and Playwright's browser.
 
 Nothing else. No native modules, no extra extensions. KeepSafe and DeepTest are recommended once, on the setup screen, and never nagged about.
 
@@ -139,7 +142,7 @@ npx @vscode/vsce package --no-dependencies
 
 Then in the Extensions view choose "Install from VSIX..." from the "..." menu, pick the file, then press Ctrl+Shift+P, "Developer: Reload Window", Enter. The panel header carries the build number.
 
-Design and contracts: `docs/toolkit/`. Engineering reasons: `docs/engineering-notes.md`. Acceptance script: `docs/uat.md`.
+Design and contracts: `docs/toolkit/`. Engineering reasons: `docs/engineering-notes.md`. Acceptance script: `docs/uat.md`. Everything under `docs/` is a mirror of the toolkit's library in `MADTPackage\library`, where the documents are written and catalogued; edit them there.
 
 ---
 

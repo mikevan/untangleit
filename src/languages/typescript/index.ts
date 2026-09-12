@@ -15,7 +15,7 @@ import { analyzeTypeScriptTree } from './structure';
 import { extractScript, isSingleFileComponent } from '@projectrevivesolutions/complexity';
 
 /** ng-vitest is Vitest under Angular's unit-test builder, driven through `ng test`. */
-export type Runner = 'jest' | 'vitest' | 'ng-vitest' | 'ng-karma';
+export type Runner = 'jest' | 'vitest' | 'ng-vitest' | 'ng-karma' | 'mocha' | 'playwright-ct';
 
 const FIELDS: FieldSpec[] = [
   {
@@ -26,8 +26,9 @@ const FIELDS: FieldSpec[] = [
       { value: 'auto', label: 'Detect from package.json' },
       { value: 'vitest', label: 'Vitest' },
       { value: 'jest', label: 'Jest' },
+      { value: 'mocha', label: 'Mocha' },
     ],
-    hint: 'UntangleIt runs the project\'s own tests to check that an untangling kept the behaviour.',
+    hint: 'UntangleIt runs the project\'s own tests to check that an untangling kept the behaviour. Angular projects run through ng test and Playwright component tests through Playwright, detected from the project.',
   },
   {
     key: 'extraArgs',
@@ -115,15 +116,30 @@ export function detectAngularRunner(workspaceRoot: string): 'vitest' | 'karma' |
   return undefined;
 }
 
+const PLAYWRIGHT_CT_PACKAGES = ['@playwright/experimental-ct-react', '@playwright/experimental-ct-vue', '@playwright/experimental-ct-svelte', '@playwright/experimental-ct-solid', '@playwright/experimental-ct-react17'];
+
+/** The Playwright component-testing package the project uses, or undefined. */
+export function detectPlaywrightCt(workspaceRoot: string): string | undefined {
+  const pkg = readPackageJson(workspaceRoot);
+  return PLAYWRIGHT_CT_PACKAGES.find((p) => Boolean(pkg?.deps[p]));
+}
+
+/** Same rules as DeepTest's: Playwright component tests first, then Vitest, Jest, and Mocha, with the test script settling a tie. */
 export function detectRunner(workspaceRoot: string): Runner | undefined {
   const pkg = readPackageJson(workspaceRoot);
-  const hasVitest = Boolean(pkg?.deps.vitest) || Boolean(resolveModuleDir(workspaceRoot, 'vitest'));
-  const hasJest = Boolean(pkg?.deps.jest) || Boolean(resolveModuleDir(workspaceRoot, 'jest'));
-  const testScript = pkg?.scripts.test ?? '';
-  if (hasVitest && hasJest) {
-    return /\bjest\b/.test(testScript) && !/\bvitest\b/.test(testScript) ? 'jest' : 'vitest';
+  if (detectPlaywrightCt(workspaceRoot)) {
+    return 'playwright-ct';
   }
-  return hasVitest ? 'vitest' : hasJest ? 'jest' : undefined;
+  const has = (name: string): boolean => Boolean(pkg?.deps[name]) || Boolean(resolveModuleDir(workspaceRoot, name));
+  const testScript = pkg?.scripts.test ?? '';
+  const present = (['vitest', 'jest', 'mocha'] as const).filter(has);
+  if (present.length > 1) {
+    const named = present.filter((r) => new RegExp(`\\b${r}\\b`).test(testScript));
+    if (named.length === 1) {
+      return named[0];
+    }
+  }
+  return present[0];
 }
 
 export function guessTestsPath(workspaceRoot: string): string {
@@ -191,9 +207,43 @@ export function parseKarmaSummary(output: string, exitCode: number | null): Test
   return summary;
 }
 
+/** Mocha's summary: "10 passing (5ms)", "2 failing", "1 pending". */
+export function parseMochaSummary(output: string, exitCode: number | null): TestRunSummary {
+  const summary: TestRunSummary = { passed: 0, failed: 0, errors: 0, skipped: 0, exitCode };
+  const text = stripAnsi(output);
+  const grab = (word: string): number => {
+    const m = new RegExp(`(\\d+) ${word}`).exec(text);
+    return m ? Number(m[1]) : 0;
+  };
+  summary.passed = grab('passing');
+  summary.failed = grab('failing');
+  summary.skipped = grab('pending');
+  if (summary.passed + summary.failed + summary.skipped === 0 && exitCode !== 0) {
+    summary.errors = 1;
+  }
+  return summary;
+}
+
+/** Playwright's summary: "2 passed (2.6s)", "1 failed", "1 flaky", "1 skipped", "1 did not run". */
+export function parsePlaywrightSummary(output: string, exitCode: number | null): TestRunSummary {
+  const summary: TestRunSummary = { passed: 0, failed: 0, errors: 0, skipped: 0, exitCode };
+  const text = stripAnsi(output);
+  const grab = (word: string): number => {
+    const m = new RegExp(`(\\d+) ${word}`).exec(text);
+    return m ? Number(m[1]) : 0;
+  };
+  summary.passed = grab('passed') + grab('flaky');
+  summary.failed = grab('failed');
+  summary.skipped = grab('skipped') + grab('did not run');
+  if (summary.passed + summary.failed + summary.skipped === 0 && exitCode !== 0) {
+    summary.errors = 1;
+  }
+  return summary;
+}
+
 export function tsFields(settings: LanguageSettings): { runner: 'auto' | Runner; extraArgs: string } {
   const f = settings.fields;
-  const runner = f.runner === 'jest' || f.runner === 'vitest' ? f.runner : 'auto';
+  const runner = f.runner === 'jest' || f.runner === 'vitest' || f.runner === 'mocha' ? f.runner : 'auto';
   return { runner, extraArgs: typeof f.extraArgs === 'string' ? f.extraArgs : '' };
 }
 
@@ -235,13 +285,41 @@ class NodeTestRunner implements TestRunner {
 
   describe(ctx: Pick<RunContext, 'workspaceRoot' | 'settings'>): string {
     const runner = this.runnerFor(ctx);
-    return runner ? `${runner === 'ng-vitest' ? 'ng test with Vitest' : runner === 'ng-karma' ? 'ng test with Karma' : runner} ${ctx.settings.testsPath || ''}`.trim() : 'no test runner found';
+    const name = runner === 'ng-vitest' ? 'ng test with Vitest' : runner === 'ng-karma' ? 'ng test with Karma' : runner === 'playwright-ct' ? 'Playwright component tests' : runner;
+    return runner ? `${name} ${ctx.settings.testsPath || ''}`.trim() : 'no test runner found';
   }
 
   async run(ctx: RunContext): Promise<TestRunSummary> {
     const runner = this.runnerFor(ctx);
     if (!runner) {
       throw new Error('No test runner was found. Install Vitest or Jest, or pick one on the setup screen.');
+    }
+    if (runner === 'mocha') {
+      const mochaDir = resolveModuleDir(ctx.workspaceRoot, 'mocha');
+      if (!mochaDir) {
+        throw new Error('mocha is not installed. Run npm install.');
+      }
+      const { extraArgs: mochaExtra } = tsFields(ctx.settings);
+      const testsPath = ctx.settings.testsPath;
+      const mochaArgs = [path.join(mochaDir, 'bin', 'mocha.js'), ...splitArgs(mochaExtra), ...(testsPath ? [`${testsPath}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}`] : [])];
+      ctx.log(`$ node ${mochaArgs.join(' ')}`);
+      const mochaRun = await runProcess('node', mochaArgs, { cwd: ctx.workspaceRoot, env: { ...process.env, CI: process.env.CI ?? 'true', NO_COLOR: '1', FORCE_COLOR: '0' }, log: ctx.log, signal: ctx.signal });
+      return parseMochaSummary(mochaRun.output, mochaRun.exitCode);
+    }
+    if (runner === 'playwright-ct') {
+      // The component package's own cli.js, the one `npx playwright` resolves to in such a project (DeepTest 1.0.7 notes).
+      const ctPackage = detectPlaywrightCt(ctx.workspaceRoot)!;
+      const ctDir = resolveModuleDir(ctx.workspaceRoot, ctPackage);
+      if (!ctDir) {
+        throw new Error(`${ctPackage} is not installed. Run npm install.`);
+      }
+      const { extraArgs: pwExtra } = tsFields(ctx.settings);
+      // Playwright looks for playwright.config.* on its own; component tests live in playwright-ct.config.*, so name it.
+      const ctConfig = ['playwright-ct.config.ts', 'playwright-ct.config.mts', 'playwright-ct.config.js', 'playwright-ct.config.mjs', 'playwright-ct.config.cjs'].find((f) => fs.existsSync(path.join(ctx.workspaceRoot, f)));
+      const pwArgs = [path.join(ctDir, 'cli.js'), 'test', ...(ctConfig ? ['-c', ctConfig] : []), ...splitArgs(pwExtra)];
+      ctx.log(`$ node ${pwArgs.join(' ')}`);
+      const pwRun = await runProcess('node', pwArgs, { cwd: ctx.workspaceRoot, env: { ...process.env, CI: process.env.CI ?? 'true', NO_COLOR: '1', FORCE_COLOR: '0' }, log: ctx.log, signal: ctx.signal });
+      return parsePlaywrightSummary(pwRun.output, pwRun.exitCode);
     }
     if (runner === 'ng-vitest' || runner === 'ng-karma') {
       // Angular's tests need the compiler and TestBed that only the builder

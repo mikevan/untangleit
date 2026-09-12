@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { parsePytestSummary, pythonPlugin } from '../src/languages/python';
-import { detectAngularRunner, parseJestSummary, parseKarmaSummary, parseVitestSummary, typescriptPlugin } from '../src/languages/typescript';
+import { detectAngularRunner, detectPlaywrightCt, detectRunner, parseJestSummary, parseKarmaSummary, parseMochaSummary, parsePlaywrightSummary, parseVitestSummary, typescriptPlugin } from '../src/languages/typescript';
 
 const ESC = String.fromCharCode(27);
 
@@ -62,4 +62,26 @@ test('an Angular project is run through ng test, never the vitest binary (1.0.4)
   write({ builder: '@angular-devkit/build-angular:karma' });
   assert.equal(detectAngularRunner(dir), 'karma');
   assert.equal(detectAngularRunner(path.resolve('test/fixtures/tsproject-vitest')), undefined);
+});
+
+test('Mocha and Playwright component tests: detection and summaries (1.0.8)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'untangleit-runners-'));
+  const write = (pkg: unknown) => fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(pkg));
+  const runner = typescriptPlugin.createTestRunner();
+  const settings = { testsPath: '', sourceRoot: 'src', fields: { runner: 'auto', extraArgs: '' } };
+  write({ devDependencies: { mocha: '^11' } });
+  assert.equal(detectRunner(dir), 'mocha');
+  assert.equal(runner.describe({ workspaceRoot: dir, settings }), 'mocha');
+  write({ devDependencies: { mocha: '^11', vitest: '^3' }, scripts: { test: 'mocha' } });
+  assert.equal(detectRunner(dir), 'mocha', 'the test script settles a tie');
+  write({ devDependencies: { mocha: '^11', vitest: '^3' } });
+  assert.equal(detectRunner(dir), 'vitest', 'no script: Vitest first');
+  write({ devDependencies: { '@playwright/experimental-ct-react': '^1.62', vitest: '^3' } });
+  assert.equal(detectPlaywrightCt(dir), '@playwright/experimental-ct-react');
+  assert.equal(detectRunner(dir), 'playwright-ct', 'component tests before everything else');
+  assert.equal(runner.describe({ workspaceRoot: dir, settings }), 'Playwright component tests');
+  assert.deepEqual(parseMochaSummary('\n  10 passing (5ms)\n  1 pending\n  2 failing\n', 2), { passed: 10, failed: 2, errors: 0, skipped: 1, exitCode: 2 });
+  assert.equal(parseMochaSummary('Error: Cannot find module', 1).errors, 1);
+  assert.deepEqual(parsePlaywrightSummary('  1 failed\n  1 flaky\n  2 skipped\n  7 passed (3.1s)\n', 1), { passed: 8, failed: 1, errors: 0, skipped: 2, exitCode: 1 });
+  assert.equal(parsePlaywrightSummary("Error: browserType.launch: Executable doesn't exist", 1).errors, 1);
 });

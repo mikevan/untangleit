@@ -1,5 +1,7 @@
 # UntangleIt engineering notes
 
+Michael Van Geertruy, with Claude. Project Revive Solutions, LLC.
+
 What was built, what was tried, what failed, and why it is shaped this way. Companion to docs/build-status.md (where things stand) and docs/toolkit/ (the toolkit's common language, the inter-tool API, and this tool's spec).
 
 ## Where it came from
@@ -204,3 +206,16 @@ line, parsed by `parseKarmaSummary`. The `--browsers` flag replaces the
 project's own browser list for the run, so a custom launcher in the
 project's karma.conf.js is not used here; DeepTest's driver keeps it.
 Verified on HelloWorlds' angular-karma: 11 passed.
+
+
+## Mocha and Playwright component tests in the test gate (1.0.8)
+
+The loop's test gate runs Mocha (`mocha/bin/mocha.js`, the tests folder as
+a glob when one is set) and Playwright component tests (the component
+package's own `cli.js` with `-c playwright-ct.config.*` named, because
+Playwright looks for `playwright.config.*` on its own and then complains
+that component testing needs `defineConfig`). Detection follows
+DeepTest's order: Playwright component tests first, then Vitest, Jest,
+and Mocha, with the test script settling a tie. Summaries parsed the same
+way as DeepTest's. Verified on HelloWorlds' node-mocha (10 passing) and
+react-playwright-ct (10 passed) through the runner. One new test; 16.

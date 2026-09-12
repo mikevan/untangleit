@@ -1,5 +1,7 @@
 # 1.0: the JavaScript frameworks. The plan.
 
+Michael Van Geertruy, with Claude. Project Revive Solutions, LLC.
+
 Draft 2, 2026-09-12 (draft 1 earlier the same day; draft 2 adds the survey's findings and the revised phase order). The first slot of the Language Expansion series (toolkit-roadmap.md). Publisher: `prs`.
 
 ## What 1.0 is, and is not
@@ -44,7 +46,7 @@ Full detail in DeepTest's docs/engineering-notes.md under "1.0 survey". Every po
 | angular-vitest | **Fails twice.** The plugin drives the vitest binary and bypasses the Angular builder; the coverage-package install is unpinned and fetched a major that does not match the project's Vitest. Through `ng test` with `--setup-files`, `--coverage-include`, and a json reporter it runs and covers every file, but per-test attribution names bundle chunks, not sources: the source-map question is phase 3's first job. |
 | angular-karma | **Wrong advice.** "No test runner found. Install Vitest or Jest." on a project that has Karma. |
 
-Revised order: 1.0.1 fixes the two production bugs (hook location, pinned install); 1.0.2 fixes the Karma advice and makes `.vue` and `.svelte` visible (red, never invisible); 1.0.3 parses them; 1.0.4 is the Angular driver through the builder with the source-map answer; 1.0.5 Karma through the same builder; then as planned.
+Revised order: 1.0.1 fixes the two production bugs (hook location, pinned install); 1.0.2 fixes the Karma advice and makes `.vue` and `.svelte` visible (red, never invisible); 1.0.3 parses them; 1.0.4 is the Angular driver through the builder with the source-map answer; 1.0.5 Karma through the same builder; 1.0.6 Mocha through Witness, DeepTest's own instrumentation (docs/witness.md), after the survey found that nyc cannot see an ES-module project at all; 1.0.7 Playwright component tests through the engine counters; 1.0.8 the words and the pages.
 
 ## The phases, in order
 
@@ -94,9 +96,9 @@ Verify: a person with any of the six fixture shapes can install the pack, open t
 
 ## What is uncertain, said now rather than found later
 
-- Playwright component tests: per-test counters in a browser page are unverified. 1.0 may ship with Playwright detected and explained rather than driven.
-- Angular's builder: whether a setup file can be injected is the survey's job; if not, attribution on Angular Vitest projects is per file until the builder allows more, and the report says so.
-- Karma: the hook is new code and the Angular Karma fixture is the only proof. Existing Angular projects are the population that needs it most, so it is worth the work, but it is the riskiest driver.
+- Playwright component tests: per-test counters in a browser page are unverified. 1.0 may ship with Playwright detected and explained rather than driven. Answered in 1.0.7: Witness instruments the component build through a Vite plugin and reads the page per test through a fixture the project imports (Playwright's only in-worker seam); the engine counters over the DevTools protocol were verified too and are the path for whole-run coverage without cooperation.
+- Angular's builder: whether a setup file can be injected is the survey's job; if not, attribution on Angular Vitest projects is per file until the builder allows more, and the report says so. Answered in 1.0.4: `--setup-files` takes the hook, the hook maps the builder's chunks back to sources through their source maps, and `--isolate` is required for the hook to see every spec file. Attribution is per test, the same as everywhere else.
+- Karma: the hook is new code and the Angular Karma fixture is the only proof. Existing Angular projects are the population that needs it most, so it is worth the work, but it is the riskiest driver. Shipped in 1.0.5: a Jasmine reporter in the browser and a Karma reporter in the server, loaded through a generated Karma config; files no test loads get their line universe from the project's own istanbul-lib-instrument. The older @angular-devkit/build-angular:karma builder is refused with the reason.
 - SFC templates: not parsed in 1.0. Decisions in templates are invisible to density until a later slot.
 - Svelte 5 runes and Vue `<script setup>` macros (`defineProps`, `$state`) are compiler-time constructs that look like calls. The library's ordered-operand rule treats calls as impure, so a guard like `props.user && props.user.name` scores the same as anywhere else, but a run containing `$derived(...)` will be charged as ordered. The survey records whether that distorts any fixture number; if it does, the library gains a per-language list of pure macros.
 

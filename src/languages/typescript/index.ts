@@ -15,7 +15,7 @@ import { analyzeTypeScriptTree } from './structure';
 import { extractScript, isSingleFileComponent } from '@projectrevivesolutions/complexity';
 
 /** ng-vitest is Vitest under Angular's unit-test builder, driven through `ng test`. */
-export type Runner = 'jest' | 'vitest' | 'ng-vitest';
+export type Runner = 'jest' | 'vitest' | 'ng-vitest' | 'ng-karma';
 
 const FIELDS: FieldSpec[] = [
   {
@@ -168,6 +168,29 @@ export function parseVitestSummary(output: string, exitCode: number | null): Tes
   return { errors: 0, exitCode, ...(line ? grabCounts(line) : { passed: 0, failed: 0, skipped: 0 }) };
 }
 
+/** Karma's last "Executed N of M" line, with "(F FAILED)" and "(skipped S)" when they apply; no line means nothing ran. */
+export function parseKarmaSummary(output: string, exitCode: number | null): TestRunSummary {
+  const summary: TestRunSummary = { passed: 0, failed: 0, errors: 0, skipped: 0, exitCode };
+  const line = stripAnsi(output)
+    .split(/\r?\n/)
+    .reverse()
+    .find((l) => /Executed \d+ of \d+/.test(l));
+  if (!line) {
+    if (exitCode !== 0) {
+      summary.errors = 1;
+    }
+    return summary;
+  }
+  const executed = Number(/Executed (\d+) of/.exec(line)?.[1] ?? 0);
+  summary.failed = Number(/\((\d+) FAILED\)/.exec(line)?.[1] ?? 0);
+  summary.skipped = Number(/\(skipped (\d+)\)/.exec(line)?.[1] ?? 0);
+  summary.passed = Math.max(0, executed - summary.failed);
+  if (/ERROR/.test(line) && executed === 0) {
+    summary.errors = 1;
+  }
+  return summary;
+}
+
 export function tsFields(settings: LanguageSettings): { runner: 'auto' | Runner; extraArgs: string } {
   const f = settings.fields;
   const runner = f.runner === 'jest' || f.runner === 'vitest' ? f.runner : 'auto';
@@ -206,12 +229,13 @@ class NodeTestRunner implements TestRunner {
     if (runner !== 'auto') {
       return runner;
     }
-    return detectAngularRunner(ctx.workspaceRoot) === 'vitest' ? 'ng-vitest' : detectRunner(ctx.workspaceRoot);
+    const angular = detectAngularRunner(ctx.workspaceRoot);
+    return angular === 'vitest' ? 'ng-vitest' : angular === 'karma' ? 'ng-karma' : detectRunner(ctx.workspaceRoot);
   }
 
   describe(ctx: Pick<RunContext, 'workspaceRoot' | 'settings'>): string {
     const runner = this.runnerFor(ctx);
-    return runner ? `${runner === 'ng-vitest' ? 'ng test with Vitest' : runner} ${ctx.settings.testsPath || ''}`.trim() : 'no test runner found';
+    return runner ? `${runner === 'ng-vitest' ? 'ng test with Vitest' : runner === 'ng-karma' ? 'ng test with Karma' : runner} ${ctx.settings.testsPath || ''}`.trim() : 'no test runner found';
   }
 
   async run(ctx: RunContext): Promise<TestRunSummary> {
@@ -219,19 +243,20 @@ class NodeTestRunner implements TestRunner {
     if (!runner) {
       throw new Error('No test runner was found. Install Vitest or Jest, or pick one on the setup screen.');
     }
-    if (runner === 'ng-vitest') {
+    if (runner === 'ng-vitest' || runner === 'ng-karma') {
       // Angular's tests need the compiler and TestBed that only the builder
       // provides, so the run is `ng test`, never the vitest binary (DeepTest
       // 1.0 survey, finding 3a). Same driver as DeepTest's, without the hook.
+      // Karma runs headless so no browser window opens mid-loop.
       const cli = resolveModuleDir(ctx.workspaceRoot, '@angular/cli');
       if (!cli) {
         throw new Error('@angular/cli is not installed. Run npm install.');
       }
       const { extraArgs: ngExtra } = tsFields(ctx.settings);
-      const ngArgs = [path.join(cli, 'bin', 'ng.js'), 'test', '--watch=false', ...splitArgs(ngExtra)];
+      const ngArgs = [path.join(cli, 'bin', 'ng.js'), 'test', '--watch=false', ...(runner === 'ng-karma' ? ['--browsers', 'ChromeHeadless'] : []), ...splitArgs(ngExtra)];
       ctx.log(`$ node ${ngArgs.join(' ')}`);
       const ngRun = await runProcess('node', ngArgs, { cwd: ctx.workspaceRoot, env: { ...process.env, CI: process.env.CI ?? 'true', NO_COLOR: '1', FORCE_COLOR: '0' }, log: ctx.log, signal: ctx.signal });
-      return parseVitestSummary(ngRun.output, ngRun.exitCode);
+      return runner === 'ng-karma' ? parseKarmaSummary(ngRun.output, ngRun.exitCode) : parseVitestSummary(ngRun.output, ngRun.exitCode);
     }
     const moduleDir = resolveModuleDir(ctx.workspaceRoot, runner);
     if (!moduleDir) {

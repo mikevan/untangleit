@@ -2,6 +2,11 @@
 
 Updated 2026-09-12. Source tree at C:\workspace\UntangleIt. Publisher `prs`, extension id `prs.untangleit`.
 
+## 2026-09-12, 1.0.5: Karma projects run headless through ng test
+
+- Runner ng-karma: `ng test --watch=false --browsers ChromeHeadless`,
+  Karma's summary parsed. Angular test extended; 15 unit tests expected.
+
 ## 2026-09-12, 1.0.4: Angular tests run through ng test
 
 - Runner ng-vitest for an Angular project with the unit-test builder:

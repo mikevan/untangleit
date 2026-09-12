@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { parsePytestSummary, pythonPlugin } from '../src/languages/python';
-import { detectAngularRunner, parseJestSummary, parseVitestSummary, typescriptPlugin } from '../src/languages/typescript';
+import { detectAngularRunner, parseJestSummary, parseKarmaSummary, parseVitestSummary, typescriptPlugin } from '../src/languages/typescript';
 
 const ESC = String.fromCharCode(27);
 
@@ -45,7 +45,7 @@ test('the pytest fixture runs through the project interpreter and passes', async
   assert.ok(summary.passed >= 4);
 });
 
-test('an Angular project is run through ng test, never the vitest binary (1.0.4)', () => {
+test('an Angular project is run through ng test, never the vitest binary (1.0.4); Karma headless (1.0.5)', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'untangleit-ng-'));
   const write = (test: unknown) => fs.writeFileSync(path.join(dir, 'angular.json'), JSON.stringify({ projects: { app: { architect: { test } } } }));
   write({ builder: '@angular/build:unit-test' });
@@ -55,6 +55,10 @@ test('an Angular project is run through ng test, never the vitest binary (1.0.4)
   assert.equal(runner.describe({ workspaceRoot: dir, settings }), 'ng test with Vitest');
   write({ builder: '@angular/build:unit-test', options: { runner: 'karma' } });
   assert.equal(detectAngularRunner(dir), 'karma');
+  assert.equal(runner.describe({ workspaceRoot: dir, settings }), 'ng test with Karma');
+  assert.deepEqual(parseKarmaSummary('Chrome Headless (Linux): Executed 11 of 11 SUCCESS (0.03 secs / 0.02 secs)\nTOTAL: 11 SUCCESS\n', 0), { passed: 11, failed: 0, errors: 0, skipped: 0, exitCode: 0 });
+  assert.deepEqual(parseKarmaSummary('Chrome Headless (Linux): Executed 11 of 11 (2 FAILED) (0.03 secs / 0.02 secs)\n', 1), { passed: 9, failed: 2, errors: 0, skipped: 0, exitCode: 1 });
+  assert.equal(parseKarmaSummary('Application bundle generation failed.\n', 1).errors, 1);
   write({ builder: '@angular-devkit/build-angular:karma' });
   assert.equal(detectAngularRunner(dir), 'karma');
   assert.equal(detectAngularRunner(path.resolve('test/fixtures/tsproject-vitest')), undefined);

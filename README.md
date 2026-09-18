@@ -1,4 +1,4 @@
-# UntangleIt
+# UntangleIt - Polyglot
 
 "An assistant that says 'done' is not evidence. The numbers are."
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.10
+
+The 1.x series is named Polyglot, and UntangleIt carries it. The side panel
+header and the Marketplace title read `UntangleIt - Polyglot`, with the version
+still appended to the header as before. Nothing else changes.
+
 ## 1.0.9
 
 Declares `@projectrevivesolutions/witness`, the toolkit's instrumentation library, for the behaviour gate that comes next. Nothing in UntangleIt uses it yet.

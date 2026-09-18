@@ -26,7 +26,7 @@ const watch = process.argv.includes('--watch');
 // bumps the version first, so the header always names the build it came from.
 {
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-  const stamped = `UntangleIt ${pkg.version}`;
+  const stamped = `UntangleIt - Polyglot ${pkg.version}`;
   const container = pkg.contributes.viewsContainers.activitybar[0];
   const view = pkg.contributes.views.untangleit[0];
   if (container.title !== stamped || view.name !== stamped || view.contextualTitle !== stamped) {

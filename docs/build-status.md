@@ -2,7 +2,7 @@
 
 Michael Van Geertruy, with Claude. Project Revive Solutions, LLC.
 
-Updated 2026-09-12. Source tree at C:\workspace\UntangleIt. Publisher `prs`, extension id `prs.untangleit`.
+Updated 2026-09-12. Source tree at C:\workspace\MikeVan's AI Development Toolkit\UntangleIt. Publisher `prs`, extension id `prs.untangleit`.
 
 ## 2026-09-12, 1.0.8: Mocha and Playwright component tests in the test gate
 
@@ -58,7 +58,7 @@ Updated 2026-09-12. Source tree at C:\workspace\UntangleIt. Publisher `prs`, ext
 ## Run it (PowerShell)
 
 ```powershell
-cd C:\workspace\UntangleIt
+cd C:\workspace\MikeVan's AI Development Toolkit\UntangleIt
 npm install                                     # links ../complexity
 npm test                                        # the pytest case skips if no Python
 npm run build                                   # dist/extension.js and the wasm grammars

@@ -7,15 +7,15 @@ Run through this as Jeff would: press what he would press, read what he would re
 Setup once, in PowerShell:
 
 ```powershell
-cd C:\workspace\UntangleIt
+cd C:\workspace\MikeVan's AI Development Toolkit\UntangleIt
 npm install
 npm run build
 npx @vscode/vsce package --no-dependencies
 ```
 
-The last command prints "DONE  Packaged: C:\workspace\UntangleIt\untangleit-0.1.3.vsix". Then, in VS Code, press Ctrl+Shift+X to open the Extensions view. At the top right of that view click the "..." button (its tooltip reads "Views and More Actions..."), choose "Install from VSIX...", pick the file, and click "Install". A notification says "Completed installing UntangleIt extension from VSIX." Do not use its "Restart Extensions" button: that restarts only the part that runs the code, and the panel header comes from the part that draws the window. Instead press Ctrl+Shift+P, type "Developer: Reload Window", and press Enter. The UntangleIt icon appears in the activity bar on the left, and the panel's header reads "UntangleIt" followed by the build number. Repeat these steps after every change to the source.
+The last command prints "DONE  Packaged: C:\workspace\MikeVan's AI Development Toolkit\UntangleIt\untangleit-0.1.3.vsix". Then, in VS Code, press Ctrl+Shift+X to open the Extensions view. At the top right of that view click the "..." button (its tooltip reads "Views and More Actions..."), choose "Install from VSIX...", pick the file, and click "Install". A notification says "Completed installing UntangleIt extension from VSIX." Do not use its "Restart Extensions" button: that restarts only the part that runs the code, and the panel header comes from the part that draws the window. Instead press Ctrl+Shift+P, type "Developer: Reload Window", and press Enter. The UntangleIt icon appears in the activity bar on the left, and the panel's header reads "UntangleIt" followed by the build number. Repeat these steps after every change to the source.
 
-The fixture project lives at `C:\workspace\UntangleIt\test\fixtures\tsproject-vitest`. It needs the repository's `npm install` to have run, since it borrows the repository's Vitest.
+The fixture project lives at `C:\workspace\MikeVan's AI Development Toolkit\UntangleIt\test\fixtures\tsproject-vitest`. It needs the repository's `npm install` to have run, since it borrows the repository's Vitest.
 
 ## A. First contact
 

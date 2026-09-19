@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { ResultState } from '../state';
 import { openRunFor } from '../runs';
-import { PRODUCT, Voice, meaning, runSentence, tangledSentence, tangle, verdict, wasBefore } from './words';
+import { PRODUCT, PRODUCT_FULL, Voice, meaning, runSentence, tangle, tangledSentence, verdict, wasBefore } from './words';
 
 export interface SidebarMessage {
   type: 'run' | 'configure' | 'output' | 'open' | 'untangle' | 'measureAgain' | 'toggleNumbers';
@@ -93,7 +93,7 @@ export class SidebarView implements vscode.WebviewViewProvider, vscode.Disposabl
 </head>
 <body>
 ${this.body(voice)}
-<p class="numbers" style="margin-top:24px">${PRODUCT} ${esc(this.version)}</p>
+<p class="numbers" style="margin-top:24px">${PRODUCT_FULL} ${esc(this.version)}</p>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
   document.addEventListener('click', (e) => {

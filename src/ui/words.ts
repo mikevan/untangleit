@@ -13,6 +13,10 @@ import { TestRunSummary } from '../languages/types';
 
 export const PRODUCT = 'UntangleIt';
 
+/** The full product name, series included. Used where the product is named in full,
+ *  never in running text like "UntangleIt: checking", which reads worse with it. */
+export const PRODUCT_FULL = `${PRODUCT} - Polyglot`;
+
 export interface Voice {
   showNumbers: boolean;
 }

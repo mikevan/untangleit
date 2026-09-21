@@ -63,6 +63,10 @@ test('compare: pieces are the original, the new, and the changed; unrelated neig
   assert.equal(c.remainingOver, 1);
   assert.equal(c.moved, true);
   assert.equal(c.before, 14);
+  // The method was 14 and the three pieces come to 15, so nothing was
+  // removed; the work was spread. The totals are what say so.
+  assert.equal(c.totalBefore, 14);
+  assert.equal(c.totalAfter, 15);
 
   const done = compare(before, [m('big', 3), m('helper', 2, 30), m('other', 3, 50), m('bigPartA', 5, 60)], 5);
   assert.equal(done.withinLimit, true);
@@ -72,6 +76,12 @@ test('compare: pieces are the original, the new, and the changed; unrelated neig
   assert.equal(gone.original, undefined);
   assert.equal(gone.pieces.length, 0);
   assert.equal(gone.withinLimit, false);
+
+  // A neighbour the untangling disturbed brings what it was carrying into
+  // the total, so a method emptied into an existing helper is not free.
+  const intoHelper = compare(before, [m('big', 4), m('helper', 12, 30), m('other', 3, 50)], 5);
+  assert.equal(intoHelper.totalBefore, 16);
+  assert.equal(intoHelper.totalAfter, 16);
 
   const neighbourChanged = compare(before, [m('big', 14), m('helper', 4, 30), m('other', 3, 50)], 5);
   assert.deepEqual(
@@ -87,13 +97,31 @@ test('outcomeSentence: within limit, still over, tests fail, and gone', () => {
   const before = snapshot(m('big', 14), [m('big', 14)]);
   const tests = { passed: 9, failed: 0, errors: 0, skipped: 0, exitCode: 0 };
   const ok = compare(before, [m('big', 3), m('bigPartA', 5, 60)], 5);
-  assert.equal(outcomeSentence(ok, tests, 5, 'big'), 'Untangled into 2 pieces: big() 3, bigPartA() 5. Every piece is within your limit of 5. All 9 tests pass.');
+  assert.equal(outcomeSentence(ok, tests, 5, 'big'), 'Untangled into 2 pieces: big() 3, bigPartA() 5. Every piece is within your limit of 5. Together the pieces come to 8, against 14 before. All 9 tests pass.');
   const over = compare(before, [m('big', 8), m('bigPartA', 5, 60)], 5);
-  assert.equal(outcomeSentence(over, tests, 5, 'big'), 'Not done. 2 pieces: big() 8, bigPartA() 5. 1 piece is still over your limit of 5; big() went from 14 to 8. All 9 tests pass. Your call.');
+  assert.equal(outcomeSentence(over, tests, 5, 'big'), 'Not done. 2 pieces: big() 8, bigPartA() 5. 1 piece is still over your limit of 5; big() went from 14 to 8. Together the pieces come to 13, against 14 before. All 9 tests pass. Your call.');
   assert.match(outcomeSentence(ok, { ...tests, failed: 2 }, 5, 'big'), /^The untangling broke 2 tests\. Behaviour changed/);
   const gone = compare(before, [], 5);
   assert.match(outcomeSentence(gone, tests, 5, 'big'), /^big\(\) is gone and no new methods appeared/);
-  assert.equal(outcomeSentence(ok, undefined, 5, 'big'), 'Untangled into 2 pieces: big() 3, bigPartA() 5. Every piece is within your limit of 5.');
+  assert.equal(outcomeSentence(ok, undefined, 5, 'big'), 'Untangled into 2 pieces: big() 3, bigPartA() 5. Every piece is within your limit of 5. Together the pieces come to 8, against 14 before.');
+});
+
+test('outcomeSentence says so when every piece fits and the tangle only moved', () => {
+  // The wrapper case the scorer cannot see on its own: the method's own
+  // number falls, every piece fits, and the reader's work is still there,
+  // spread across three methods instead of one.
+  const before = snapshot(m('big', 20), [m('big', 20)]);
+  const spread = compare(before, [m('big', 9), m('bigPartA', 8, 60), m('bigPartB', 6, 80)], 15);
+  assert.equal(spread.withinLimit, true);
+  assert.equal(spread.totalBefore, 20);
+  assert.equal(spread.totalAfter, 23);
+  assert.equal(
+    outcomeSentence(spread, undefined, 15, 'big'),
+    'Untangled into 3 pieces: big() 9, bigPartA() 8, bigPartB() 6. Every piece is within your limit of 15. Together the pieces come to 23, against 20 before, so the tangle moved rather than went away.',
+  );
+  // One piece is the method itself, unsplit. There is no total to compare.
+  const unsplit = compare(before, [m('big', 9)], 15);
+  assert.equal(outcomeSentence(unsplit, undefined, 15, 'big'), 'Untangled into 1 piece: big() 9. Every piece is within your limit of 15.');
 });
 
 test('the brief states the target three ways, quotes the method, and ends with the judge sentence', () => {

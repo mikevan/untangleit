@@ -81,6 +81,23 @@ export function testsSentence(t: TestRunSummary): string {
   return `All ${plural(t.passed, 'test')} pass.`;
 }
 
+/**
+ * What the pieces come to together. The worst piece falling is not the same
+ * as the tangle going away: a helper that only takes a charged boolean run
+ * out of its caller lowers the caller's number and leaves the reader with
+ * the same work in two places. The total is what shows the difference, so
+ * the person decides on both numbers rather than on the headline alone.
+ */
+function totalSentence(c: Comparison): string {
+  if (c.pieces.length < 2) {
+    return '';
+  }
+  if (c.totalAfter >= c.totalBefore) {
+    return ` Together the pieces come to ${c.totalAfter}, against ${c.totalBefore} before, so the tangle moved rather than went away.`;
+  }
+  return ` Together the pieces come to ${c.totalAfter}, against ${c.totalBefore} before.`;
+}
+
 /** The sentence after a "Measure again". */
 export function outcomeSentence(c: Comparison, tests: TestRunSummary | undefined, limit: number, name: string): string {
   const failing = tests ? tests.failed + tests.errors : 0;
@@ -92,10 +109,10 @@ export function outcomeSentence(c: Comparison, tests: TestRunSummary | undefined
   }
   const piecesText = `${plural(c.pieces.length, 'piece')}: ${c.pieces.map((p) => `${p.name}() ${p.mbcc}`).join(', ')}.`;
   if (c.withinLimit) {
-    return `Untangled into ${piecesText} Every piece is within your limit of ${limit}.${tests ? ` ${testsSentence(tests)}` : ''}`;
+    return `Untangled into ${piecesText} Every piece is within your limit of ${limit}.${totalSentence(c)}${tests ? ` ${testsSentence(tests)}` : ''}`;
   }
   const over = c.pieces.filter((p) => p.over > 0);
-  return `Not done. ${piecesText} ${plural(over.length, 'piece')} ${over.length === 1 ? 'is' : 'are'} still over your limit of ${limit}${c.moved ? `; ${name}() went from ${c.before} to ${c.original?.mbcc}` : ''}.${tests ? ` ${testsSentence(tests)}` : ''} Your call.`;
+  return `Not done. ${piecesText} ${plural(over.length, 'piece')} ${over.length === 1 ? 'is' : 'are'} still over your limit of ${limit}${c.moved ? `; ${name}() went from ${c.before} to ${c.original?.mbcc}` : ''}.${totalSentence(c)}${tests ? ` ${testsSentence(tests)}` : ''} Your call.`;
 }
 
 /** The status line for an open or finished run, under a method in the list. */

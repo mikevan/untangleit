@@ -9,8 +9,16 @@
  * rides along for display and for DeepTest's test bar, and is never the
  * driver here: a flat switch has many ways through and a tangle of one, and
  * splitting it into a method per case would leave every piece at one and
- * the class no easier to follow, so the number does not reward it. The only
- * extraction that lowers tangle is one that removes nesting. A method is
+ * the class no easier to follow, so the number does not reward it. The
+ * extraction that lowers tangle honestly is the one that removes nesting:
+ * the piece starts at no nesting and the parent loses a level. One
+ * extraction lowers it dishonestly, and the scorer cannot see it, because it
+ * measures one method at a time: moving a charged boolean run into a helper
+ * turns operands the caller paid for into one call it does not pay for, and
+ * the caller's number falls without the reader's work falling with it. That
+ * is why every comparison reports what the pieces come to together as well
+ * as what the worst piece comes to. A split that only moved the work shows
+ * up in the total. A method is
  * tangled when its tangle is over the limit. The limit is the person's;
  * the default is 15 (SonarSource's published default for cognitive
  * complexity per method).
@@ -97,6 +105,10 @@ export interface Comparison {
   moved: boolean;
   /** Tangle (MBCC) before, for the sentence "was 48". */
   before: number;
+  /** Tangle (MBCC) of the method plus every piece that already existed, as they stood before. */
+  totalBefore: number;
+  /** Tangle (MBCC) summed across the pieces now. Compare it with totalBefore to see whether the tangle went away or only moved. */
+  totalAfter: number;
 }
 
 /**
@@ -133,6 +145,14 @@ export function compare(before: Snapshot, after: FunctionComplexity[], limit: nu
   }
   pieces.sort((a, b) => b.over - a.over || a.startLine - b.startLine);
   const remainingOver = pieces.reduce((sum, p) => sum + p.over, 0);
+  // The method's own tangle, plus what each neighbour it disturbed was
+  // carrying before. A piece that is new contributed nothing before, which
+  // is the point: if the work were truly gone the total would fall, and if
+  // it were only moved into new methods the total would hold or rise.
+  const totalBefore = pieces
+    .filter((p) => p.kind === 'changed')
+    .reduce((sum, p) => sum + (oldByName.get(p.name)?.mbcc ?? 0), before.mbcc);
+  const totalAfter = pieces.reduce((sum, p) => sum + p.mbcc, 0);
   return {
     original,
     pieces,
@@ -140,5 +160,7 @@ export function compare(before: Snapshot, after: FunctionComplexity[], limit: nu
     remainingOver,
     moved: original !== undefined && original.mbcc < before.mbcc,
     before: before.mbcc,
+    totalBefore,
+    totalAfter,
   };
 }

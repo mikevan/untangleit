@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.13
+
+A split that only moves the tangle around no longer passes quietly.
+
+After "Measure again", the comparison now carries the total as well as the
+pieces: what the pieces come to together in tangle, against what the method
+and any piece the untangling disturbed were carrying before. The card says
+both. When the total holds or rises while every piece fits, it says the tangle
+moved rather than went away, in those words, and the person still decides.
+
+This closes a hole the scorer cannot close. A boolean run that holds a call is
+charged per operand, so moving it into a helper costs the caller one call
+instead of its operands and the caller's number falls with the reader's work
+untouched. An assistant told to get a method under a limit will find that
+move. The scorer measures one method at a time and cannot see it; the loop
+holds both versions and can. The header comment in src/engine/tangle.ts said
+the only extraction that lowers tangle is one that removes nesting. That was
+not true, and it now says what is.
+
 ## 1.0.10
 
 The 1.x series is named Polyglot, and UntangleIt carries it. The side panel

@@ -11,6 +11,7 @@ tsconfig*.json
 .gitattributes
 vitest.config.ts
 .untangleit/**
+.deeptest/**
 .keepsafe/**
 *.vsix
 *.zip

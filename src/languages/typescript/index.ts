@@ -10,7 +10,8 @@ import type { Parser } from 'web-tree-sitter';
 import { FunctionComplexity } from '../../engine/types';
 import { runProcess } from '../shared/process';
 import { createParser, initTreeSitter } from '../shared/treeSitter';
-import { Detection, FieldSpec, HostServices, LanguagePlugin, LanguageSettings, RunContext, StructureEnvironment, StructureSource, TestRunSummary, TestRunner } from '../types';
+import { createTypeScriptBoundaryRecorder } from './boundary';
+import { BoundaryRecorder, Detection, FieldSpec, HostServices, LanguagePlugin, LanguageSettings, RunContext, StructureEnvironment, StructureSource, TestRunSummary, TestRunner } from '../types';
 import { analyzeTypeScriptTree } from './structure';
 import { extractScript, isSingleFileComponent } from '@projectrevivesolutions/complexity';
 
@@ -406,6 +407,9 @@ export const typescriptPlugin: LanguagePlugin = {
   detect,
   createTestRunner(): TestRunner {
     return new NodeTestRunner();
+  },
+  createBoundaryRecorder(): BoundaryRecorder {
+    return createTypeScriptBoundaryRecorder();
   },
   async createStructureSource(env: StructureEnvironment): Promise<StructureSource> {
     await initTreeSitter(path.join(env.wasmDir, 'web-tree-sitter.wasm'));

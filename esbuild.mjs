@@ -2,7 +2,7 @@
 // beside it. web-tree-sitter locates its runtime wasm at load time, so the
 // extension passes an absolute path (see src/languages/shared/treeSitter.ts).
 import * as esbuild from 'esbuild';
-import { copyFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 // web-tree-sitter ships ESM and CJS builds. Its ESM build uses import.meta.url,
@@ -48,6 +48,22 @@ for (const file of readdirSync('vendor')) {
   if (file.endsWith('.wasm')) {
     copyFileSync(`vendor/${file}`, `dist/${file}`);
   }
+}
+
+// The Witness hooks, from 1.0.19. The behaviour gate copies them out of here
+// into .untangleit/hooks in the person's project and the runners load them
+// from there. Witness's own index is bundled into extension.js, so the folder
+// it looks in is this dist/hooks; without this block the packaged extension
+// would find nothing to copy and the gate would record nothing at all, on a
+// run that otherwise looked completely normal.
+//
+// Emptied first, the way DeepTest's build does it, so a hook left from an
+// earlier build cannot ship in the VSIX after the library dropped it.
+rmSync('dist/hooks', { recursive: true, force: true });
+mkdirSync('dist/hooks', { recursive: true });
+const witnessHooks = 'node_modules/@projectrevivesolutions/witness/dist/hooks';
+for (const file of readdirSync(witnessHooks)) {
+  copyFileSync(`${witnessHooks}/${file}`, `dist/hooks/${file}`);
 }
 
 const ctx = await esbuild.context({

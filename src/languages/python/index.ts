@@ -8,7 +8,8 @@ import * as path from 'node:path';
 import { FunctionComplexity } from '../../engine/types';
 import { runProcess } from '../shared/process';
 import { createParser, initTreeSitter } from '../shared/treeSitter';
-import { Detection, FieldSpec, HostServices, LanguagePlugin, LanguageSettings, RunContext, StructureEnvironment, StructureSource, TestRunSummary, TestRunner } from '../types';
+import { createPythonBoundaryRecorder } from './boundary';
+import { BoundaryRecorder, Detection, FieldSpec, HostServices, LanguagePlugin, LanguageSettings, RunContext, StructureEnvironment, StructureSource, TestRunSummary, TestRunner } from '../types';
 import { analyzePythonTree } from './structure';
 
 const FIELDS: FieldSpec[] = [
@@ -214,6 +215,9 @@ export const pythonPlugin: LanguagePlugin = {
   detect,
   createTestRunner(): TestRunner {
     return new PytestRunner();
+  },
+  createBoundaryRecorder(): BoundaryRecorder {
+    return createPythonBoundaryRecorder();
   },
   async createStructureSource(env: StructureEnvironment): Promise<StructureSource> {
     await initTreeSitter(path.join(env.wasmDir, 'web-tree-sitter.wasm'));

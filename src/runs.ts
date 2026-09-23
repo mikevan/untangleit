@@ -9,7 +9,14 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Piece, Snapshot } from './engine/tangle';
 
-export type RunStatus = 'sent' | 'within-limit' | 'still-over' | 'tests-fail' | 'stopped';
+/**
+ * 'behaviour-changed' is from 1.0.19: the gate compared the method's
+ * recorded behaviour before the hand-off with its behaviour now and they
+ * disagreed. It is a blocking outcome, whatever the tangle came down to and
+ * whatever the suite reported, and readers written before 1.0.19 that do
+ * not know it should treat it as not within limit.
+ */
+export type RunStatus = 'sent' | 'within-limit' | 'still-over' | 'tests-fail' | 'behaviour-changed' | 'stopped';
 
 export interface RunRecord {
   id: string;
@@ -37,6 +44,19 @@ export interface RunRecord {
   tests?: { passed: number; failed: number; errors: number };
   /** Plain sentence for the person, kept so the record reads on its own. */
   outcome?: string;
+  /**
+   * The behaviour gate's answer for the latest round, when the gate ran.
+   * Absent on records written before 1.0.19 and on languages with no
+   * recorder; readers treat absent as "the gate did not run", which is not
+   * a pass. Added without a file-version bump because the shape only grew.
+   */
+  behaviour?: { verdict: 'equivalent' | 'changed' | 'insufficient'; reason?: string; compared?: number; sentence: string };
+  /**
+   * The method the behaviour gate is watching, resolved at the hand-off. The
+   * container is what lets the run at "Measure again" find the method again
+   * after the assistant moved it. Absent when this language has no recorder.
+   */
+  boundary?: { path: string; name: string; container?: string };
   snapshot: Snapshot;
 }
 

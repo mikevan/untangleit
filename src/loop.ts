@@ -5,7 +5,9 @@
  *   2. Checkpoint the KeepSafe offer, when KeepSafe is installed.
  *   3. Confirm   one modal sentence; nothing is sent before "Yes, send it".
  *   4. Transform the assistant works from the brief. UntangleIt waits.
- *   5. Verify    "Measure again": run the suite, measure every piece.
+ *   5. Verify    "Measure again": run the suite, measure every piece, and
+ *                compare the selected method's recorded behaviour with what
+ *                was recorded at the hand-off.
  *   6. Decide    within the limit, or another round, or stop. The person.
  *
  * UntangleIt never edits code, never restores a checkpoint, never retries
@@ -16,10 +18,16 @@ import { UntangleItConfig, settingsFor } from './config';
 import { Comparison, compare, snapshot } from './engine/tangle';
 import { KEEPSAFE_EXTENSION_ID, keepSafeInstalled, offerCheckpoint } from './keepsafe';
 import { deepTestInstalled } from './deeptest';
+import { loadBefore, locateBoundary, recordBoundary, saveBefore, verdictFor } from './gate';
+import { sentence as behaviourSentence } from './engine/behaviour';
+import type { BoundaryRecord } from '@projectrevivesolutions/witness';
 import { LanguagePlugin, TestRunSummary } from './languages/types';
 import { measureFile } from './measure';
 import { lineReader } from './paths';
 import { buildUntangleBrief } from './report/brief';
+import { handOff } from './copilot';
+import { buildFailureBrief } from '@projectrevivesolutions/witness';
+import type { ProblemPacket } from '@projectrevivesolutions/witness';
 import { RunRecord, loadRuns, newRunId, openRunFor, saveRuns, upsertRun, whoAmI } from './runs';
 import { ResultState } from './state';
 import { outcomeSentence, tangle } from './ui/words';
@@ -74,14 +82,31 @@ async function gates(deps: LoopDeps, task: string): Promise<GateResult> {
   return { proceed: true, checkpointNote };
 }
 
-async function handOff(brief: string): Promise<string> {
-  await vscode.env.clipboard.writeText(brief);
-  try {
-    await vscode.commands.executeCommand('workbench.action.chat.open', { query: brief });
-    return 'The brief is in the editor chat and on your clipboard.';
-  } catch {
-    return 'The brief is on your clipboard. Paste it into the assistant you use.';
+
+/**
+ * A driver hit something the person has to be told about, and the verdict
+ * alone would not tell them.
+ *
+ * UntangleIt shows the one-line headline and offers to have it explained.
+ * The explaining is the assistant's job: the packet carries what was
+ * established, what was not, and what must not be recommended, and the brief
+ * built from it says so in as many words. UntangleIt does not write the
+ * explanation, and it does not offer to fix what the packet says cannot be
+ * fixed in code.
+ */
+function reportProblem(deps: LoopDeps, packet: ProblemPacket): void {
+  for (const line of [packet.headline, ...packet.known.map((k) => `  ${k}`)]) {
+    deps.output.appendLine(line);
   }
+  const actions = [...(packet.actions.includes('explain') ? ['Explain with Copilot'] : []), 'Show the log'];
+  void vscode.window.showWarningMessage(packet.headline, ...actions).then(async (choice) => {
+    if (choice === 'Explain with Copilot') {
+      const where = await handOff(buildFailureBrief(packet));
+      deps.output.appendLine(`Handed the failure to your assistant. ${where}`);
+    } else if (choice === 'Show the log') {
+      await vscode.commands.executeCommand('untangleit.showOutput');
+    }
+  });
 }
 
 function sourceOf(root: string, relativePath: string, startLine: number, endLine: number): { source: Array<{ line: number; text: string }>; truncated: boolean } {
@@ -95,6 +120,44 @@ function sourceOf(root: string, relativePath: string, startLine: number, endLine
     }
   }
   return { source, truncated: last < endLine };
+}
+
+/**
+ * The behaviour gate's "before", taken at the existing "Yes, send it".
+ *
+ * It runs the project's own tests once, with the Witness recorder watching
+ * the selected method and nothing else. That is real time on a large suite
+ * and there is no fast path that skips it, because a before-and-after
+ * comparison with no before is not a comparison. The log says so rather
+ * than hiding it.
+ *
+ * Nothing here can stop the hand-off. A recording that could not be made is
+ * reported at "Measure again" as no evidence, which is not a pass and not a
+ * failure, and the person decides as they do now.
+ */
+async function recordAtHandOff(
+  deps: LoopDeps,
+  plugin: LanguagePlugin,
+  root: string,
+  config: UntangleItConfig,
+  relativePath: string,
+  name: string,
+  startLine: number,
+): Promise<{ records: BoundaryRecord[]; boundary: { path: string; name: string; container?: string } } | undefined> {
+  const recorder = plugin.createBoundaryRecorder?.();
+  if (!recorder) {
+    return undefined;
+  }
+  const settings = settingsFor(config, plugin.id);
+  const boundary = (await locateBoundary(root, relativePath, startLine)) ?? { path: relativePath, name };
+  const records = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `UntangleIt is recording what ${name}() does now (${recorder.describe({ workspaceRoot: root, settings })}).` }, () =>
+    recordBoundary(plugin, { workspaceRoot: root, settings, boundary, log: (l) => deps.output.appendLine(l), report: (p) => reportProblem(deps, p) }),
+  );
+  if (!records) {
+    return undefined;
+  }
+  deps.output.appendLine(`Recorded ${records.length} observation${records.length === 1 ? '' : 's'} of ${boundary.container ? `${boundary.container}.` : ''}${boundary.name} before the hand-off.`);
+  return { records, boundary };
 }
 
 /** "Untangle it" on a method: the gates, the brief, the record. */
@@ -144,6 +207,10 @@ export async function untangle(deps: LoopDeps, relativePath: string, startLine: 
   if (!gate.proceed) {
     return;
   }
+  // The behaviour gate's "before", at the gate that already exists: the
+  // person has confirmed, and nothing has been sent yet. It costs one run of
+  // the project's tests, which the report names rather than hides.
+  const before = await recordAtHandOff(deps, plugin, root, config, relativePath, target.name, target.startLine);
   const fileMethods = await measureFile(plugin, root, relativePath, (l) => deps.output.appendLine(l));
   const { source, truncated } = sourceOf(root, relativePath, target.startLine, target.endLine);
   const brief = buildUntangleBrief({
@@ -178,6 +245,13 @@ export async function untangle(deps: LoopDeps, relativePath: string, startLine: 
   const runs = upsertRun(loadRuns(root), run);
   saveRuns(root, runs);
   deps.state.setRuns(runs);
+  if (before) {
+    run.boundary = before.boundary;
+    saveBefore(root, run.id, before.records);
+    const saved = upsertRun(runs, run);
+    saveRuns(root, saved);
+    deps.state.setRuns(saved);
+  }
   const how = await handOff(brief);
   deps.output.appendLine(`Untangle requested for ${relativePath} ${target.name}() (tangle ${target.mbcc} by MBCC, ${target.campbell} by Campbell, ${target.complexity} ways through; limit ${config.limit}). ${how}`);
   void vscode.window.showInformationMessage(`${how} When the assistant says it is done, press "Measure again" on ${target.name}().${gate.checkpointNote}`);
@@ -223,22 +297,40 @@ export async function measureAgain(deps: LoopDeps, relativePath: string, name: s
   const after = await measureFile(plugin, root, relativePath, (l) => deps.output.appendLine(l));
   const comparison = compare(run.snapshot, after, run.limit);
   const tests = await runTests(deps, plugin, root, config);
+  // The behaviour gate's "after", beside the test run and the tangle
+  // measurement this step already performs. The method is found again by
+  // name inside its container, because the assistant moved it and nothing
+  // here knows where.
+  const behaviour = await compareBehaviour(deps, plugin, root, config, run);
   const sentence = outcomeSentence(comparison, tests, run.limit, name);
   const failing = tests ? tests.failed + tests.errors : 0;
   run.measuredAt = new Date().toISOString();
   run.pieces = comparison.pieces;
   run.tests = tests ? { passed: tests.passed, failed: tests.failed, errors: tests.errors } : undefined;
   run.outcome = sentence;
-  run.status = failing > 0 ? 'tests-fail' : comparison.withinLimit ? 'within-limit' : 'still-over';
+  run.behaviour = behaviour;
+  // A changed behaviour is a blocking gate. The untangling may have brought
+  // the tangle down and the suite may be green, and it still does not
+  // behave the way it did, so it is not within limit and the person is told
+  // in those words. UntangleIt restores nothing and decides nothing.
+  run.status = behaviour?.verdict === 'changed' ? 'behaviour-changed' : failing > 0 ? 'tests-fail' : comparison.withinLimit ? 'within-limit' : 'still-over';
   const saved = upsertRun(runs, run);
   saveRuns(root, saved);
   deps.state.setRuns(saved);
   deps.output.appendLine(`Measured ${relativePath} ${name}() after round ${run.rounds}: ${sentence}`);
+  if (behaviour) {
+    deps.output.appendLine(`Behaviour gate: ${behaviour.sentence}`);
+  }
   await vscode.commands.executeCommand('untangleit.run');
 
+  if (run.status === 'behaviour-changed') {
+    void vscode.window.showWarningMessage(`${behaviour!.sentence} ${sentence} Restore the checkpoint if you want the original back, or look at what changed and decide.`);
+    return;
+  }
   if (run.status === 'within-limit') {
     const tail = deepTestInstalled() ? ' Press "Check my code again" in DeepTest to see whether every piece has the tests it needs.' : '';
-    void vscode.window.showInformationMessage(`${sentence}${tail}`);
+    const said = behaviour ? ` ${behaviour.sentence}` : '';
+    void vscode.window.showInformationMessage(`${sentence}${said}${tail}`);
     return;
   }
   if (run.rounds >= config.rounds) {
@@ -260,6 +352,37 @@ export async function measureAgain(deps: LoopDeps, relativePath: string, name: s
     return;
   }
   await anotherRound(deps, plugin, root, config, run, comparison);
+}
+
+/**
+ * The gate's answer for this round: the run kept from the hand-off against
+ * a run made now.
+ *
+ * Undefined when the gate did not run at all, which is not a verdict and is
+ * never shown as one. A before that was never kept reports as insufficient
+ * evidence with the reason, because a comparison with no before is not a
+ * comparison.
+ */
+async function compareBehaviour(deps: LoopDeps, plugin: LanguagePlugin, root: string, config: UntangleItConfig, run: RunRecord): Promise<RunRecord['behaviour']> {
+  const recorder = plugin.createBoundaryRecorder?.();
+  if (!recorder || !run.boundary) {
+    return undefined;
+  }
+  const settings = settingsFor(config, plugin.id);
+  const after = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `UntangleIt is recording what ${run.name}() does now (${recorder.describe({ workspaceRoot: root, settings })}).` }, () =>
+    recordBoundary(plugin, { workspaceRoot: root, settings, boundary: run.boundary!, log: (l) => deps.output.appendLine(l), report: (p) => reportProblem(deps, p) }),
+  );
+  const before = loadBefore(root, run.id);
+  const verdict = verdictFor(before, after);
+  if (!verdict) {
+    return undefined;
+  }
+  const label = `${run.boundary.container ? `${run.boundary.container}.` : ''}${run.boundary.name}`;
+  return {
+    verdict: verdict.verdict,
+    ...(verdict.verdict === 'insufficient' ? { reason: verdict.reason } : { compared: verdict.compared }),
+    sentence: behaviourSentence(verdict, label),
+  };
 }
 
 async function anotherRound(deps: LoopDeps, plugin: LanguagePlugin, root: string, config: UntangleItConfig, run: RunRecord, comparison: Comparison): Promise<void> {

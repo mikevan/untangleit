@@ -122,7 +122,12 @@ export function runSentence(r: RunRecord): string {
     case 'sent':
       return `Sent to your assistant on ${date} (round ${r.rounds}). When it says done, press "Measure again".`;
     case 'within-limit':
-      return `Untangled on ${r.measuredAt?.slice(0, 10) ?? date}: ${wasBefore(r)}, every piece within ${r.limit}.`;
+      // The gate's sentence is appended rather than folded in: it is the
+      // only claim about behaviour, and it has to keep its own wording,
+      // which stops at this method's boundary and says nothing else.
+      return `Untangled on ${r.measuredAt?.slice(0, 10) ?? date}: ${wasBefore(r)}, every piece within ${r.limit}.${r.behaviour ? ` ${r.behaviour.sentence}` : ''}`;
+    case 'behaviour-changed':
+      return `After round ${r.rounds}, ${r.behaviour?.sentence ?? 'the method does not behave the way it did.'} ${r.outcome ?? ''}`.trim();
     case 'still-over':
       return `After ${plural(r.rounds, 'round')}, still over your limit. ${r.outcome ?? ''}`.trim();
     case 'tests-fail':

@@ -147,7 +147,7 @@ ${this.body(voice)}
     // Open untanglings first, whether or not the method is still tangled:
     // a method the assistant brought under the limit leaves the tangled
     // list, and the button that judges the work must not leave with it.
-    const open = s.runs.runs.filter((r) => r.status === 'sent' || r.status === 'still-over' || r.status === 'tests-fail');
+    const open = s.runs.runs.filter((r) => r.status === 'sent' || r.status === 'still-over' || r.status === 'tests-fail' || r.status === 'behaviour-changed');
     if (open.length > 0) {
       parts.push('<h2>Waiting on your assistance.</h2>');
       for (const r of open) {
